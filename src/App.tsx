@@ -34,7 +34,7 @@ function App() {
   return (
     <AuthProvider>
       <CartProvider>
-        <Router>
+        <Router basename={import.meta.env.BASE_URL}>
           <ScrollToTop />
           <Routes>
             {/* All Routes Wrapped in MainLayout for Unified Look */}
