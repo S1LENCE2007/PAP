@@ -59,26 +59,57 @@ const AdminLayout: React.FC = () => {
             {/* Sidebar Toggle (Mobile) */}
             <button
                 onClick={() => setSidebarOpen(!sidebarOpen)}
-                className="lg:hidden fixed bottom-6 right-6 z-50 p-3 bg-primary text-dark rounded-full shadow-xl"
+                className="lg:hidden fixed bottom-6 right-6 z-50 p-4 bg-primary text-dark rounded-full shadow-xl shadow-primary/20 hover:scale-110 active:scale-95 transition-all"
             >
                 {sidebarOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
             </button>
+
+            {/* Mobile Sidebar Backdrop */}
+            <AnimatePresence>
+                {sidebarOpen && window.innerWidth < 1024 && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        onClick={() => setSidebarOpen(false)}
+                        className="fixed inset-0 bg-black/60 backdrop-blur-sm z-30 lg:hidden"
+                    />
+                )}
+            </AnimatePresence>
 
             {/* Sidebar Navigation */}
             <AnimatePresence mode="wait">
                 {(sidebarOpen || window.innerWidth >= 1024) && (
                     <motion.aside
-                        initial={{ x: -250, opacity: 0 }}
+                        initial={{ x: -280, opacity: 0 }}
                         animate={{ x: 0, opacity: 1 }}
-                        exit={{ x: -250, opacity: 0 }}
+                        exit={{ x: -280, opacity: 0 }}
+                        transition={{ duration: 0.3, type: "spring", stiffness: 300, damping: 30 }}
+                        // Drag functionality for mobile
+                        drag={window.innerWidth < 1024 ? "x" : false}
+                        dragConstraints={{ top: 0, bottom: 0, left: -280, right: 0 }}
+                        dragElastic={0.1}
+                        onDragEnd={(_, info) => {
+                            if (info.offset.x < -100) {
+                                setSidebarOpen(false);
+                            }
+                        }}
                         className={clsx(
-                            "fixed lg:sticky top-24 left-0 h-[calc(100vh-6rem)] w-64 bg-zinc-900/50 backdrop-blur-md border-r border-white/5 z-40 lg:z-0 flex-shrink-0 rounded-r-2xl overflow-hidden shadow-2xl lg:shadow-none",
-                            "lg:block",
-                            !sidebarOpen && "hidden"
+                            "fixed lg:sticky top-0 lg:top-24 left-0 h-screen lg:h-[calc(100vh-6rem)] w-[280px] lg:w-64 bg-zinc-900 lg:bg-zinc-900/50 backdrop-blur-md border-r border-white/5 z-40 lg:z-0 flex-shrink-0 lg:rounded-r-2xl overflow-y-auto shadow-2xl lg:shadow-none",
+                            "lg:block"
                         )}
+                        style={{ x: 0 }} // Reset transformation for drag
                     >
+                        {/* Mobile Header in Sidebar */}
+                        <div className="lg:hidden p-6 flex justify-between items-center border-b border-white/5 bg-zinc-900/50">
+                            <span className="font-heading font-bold text-white text-lg">Menu</span>
+                            <button onClick={() => setSidebarOpen(false)} className="text-gray-400 hover:text-white">
+                                <X className="w-6 h-6" />
+                            </button>
+                        </div>
+
                         <div className="p-6">
-                            <h2 className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-6">Menu Admin</h2>
+                            <h2 className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-6 hidden lg:block">Menu Admin</h2>
                             <nav className="space-y-2">
                                 {navItems.map((item) => (
                                     <Link
@@ -107,7 +138,7 @@ const AdminLayout: React.FC = () => {
                         </div>
 
                         {/* Quick Stats or Info in Sidebar Footer */}
-                        <div className="absolute bottom-0 w-full p-6 bg-gradient-to-t from-black/50 to-transparent">
+                        <div className="absolute bottom-0 w-full p-6 bg-gradient-to-t from-black/80 to-transparent lg:from-black/50">
                             <div className="flex items-center gap-3 p-3 rounded-lg bg-white/5 border border-white/5">
                                 <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center text-primary">
                                     <Scissors className="w-4 h-4" />
@@ -125,7 +156,7 @@ const AdminLayout: React.FC = () => {
             {/* Main Content Area */}
             <motion.main
                 layout
-                className="flex-1 px-4 sm:px-8 max-w-[1600px] mx-auto w-full lg:w-auto overflow-hidden"
+                className="flex-1 px-4 sm:px-8 max-w-[1600px] mx-auto w-full lg:w-auto overflow-hidden min-h-[calc(100vh-6rem)]"
             >
                 {/* Breadcrumb-like header or spacing */}
                 <div className="mb-8 flex items-center gap-2 text-sm text-gray-400">

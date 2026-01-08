@@ -141,8 +141,8 @@ const AdminDashboard: React.FC = () => {
                         {recentActivity.length > 0 ? (
                             <div className="space-y-3">
                                 {recentActivity.map((apt) => (
-                                    <div key={apt.id} className="flex items-center justify-between p-4 rounded-xl bg-white/5 hover:bg-white/10 transition-colors border border-white/5 group">
-                                        <div className="flex items-center gap-4">
+                                    <div key={apt.id} className="flex flex-col sm:flex-row items-center justify-between p-4 rounded-xl bg-white/5 hover:bg-white/10 transition-colors border border-white/5 group gap-2 sm:gap-0">
+                                        <div className="flex items-center gap-4 w-full sm:w-auto">
                                             <div className="w-10 h-10 rounded-full bg-zinc-800 flex items-center justify-center text-gray-400 group-hover:text-primary transition-colors">
                                                 <Users className="w-5 h-5" />
                                             </div>
@@ -155,8 +155,8 @@ const AdminDashboard: React.FC = () => {
                                                 </p>
                                             </div>
                                         </div>
-                                        <div className="text-right">
-                                            <div className="flex items-center gap-2 text-gray-400 text-sm mb-1 justify-end">
+                                        <div className="text-right w-full sm:w-auto mt-2 sm:mt-0 flex flex-row sm:flex-col justify-between sm:justify-center items-center sm:items-end">
+                                            <div className="flex items-center gap-2 text-gray-400 text-sm mb-0 sm:mb-1 justify-end">
                                                 <Clock className="w-3 h-3" />
                                                 {new Date(apt.data_hora).toLocaleDateString('pt-PT')}
                                             </div>

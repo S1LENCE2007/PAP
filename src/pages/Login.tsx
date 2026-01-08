@@ -97,7 +97,7 @@ const Login: React.FC = () => {
     };
 
     return (
-        <div className="min-h-screen bg-dark-bg flex items-center justify-center px-4 pt-20 pb-12 relative overflow-hidden">
+        <div className="min-h-screen bg-dark-bg flex items-center justify-center px-4 py-20 relative overflow-hidden">
             {/* ... (background code omitted for brevity) ... */}
             <div className="absolute inset-0 z-0">
                 <div className="absolute inset-0 bg-black/70 z-10" />

@@ -92,11 +92,37 @@ A segurança é garantida por **Triggers** e **RLS Policies**.
 
 ## 4. Funcionalidades da Aplicação Web
 
-### Módulo Cliente
-*   **Autenticação**: Login e Registo seguros. O sistema distingue automaticamente se o utilizador é Admin ou Cliente e redireciona-o para a área correta.
-*   **Agendamento Inteligente**: O utilizador escolhe o profissional e o serviço. O sistema calcula os "slots" livres baseando-se na duração do serviço.
-*   **Loja Online**: Catálogo de produtos com carrinho de compras persistente. O sistema valida o stock antes de permitir a adição.
-*   **Perfil**: O cliente pode ver o seu histórico de cortes, agendamentos futuros e atualizar os seus dados pessoais e password.
+### Módulo Cliente (Análise Técnica Detalhada)
+
+Esta secção detalha a implementação das funcionalidades críticas focadas na experiência do utilizador.
+
+#### 1. Gestão de Identidade (Autenticação)
+*   **Implementação**: O sistema utiliza o serviço **Supabase Auth** como Identity Provider (IdP). O frontend envia as credenciais (email/password) para a API, que retorna um **JWT (JSON Web Token)** de sessão com validade temporária.
+*   **Segurança (AuthContext)**: O estado da sessão é gerido globalmente pelo `AuthContext` (React Context API). Este componente subscreve aos eventos `onAuthStateChange` do Supabase, garantindo que o token é renovado automaticamente (Refresh Token) ou que o utilizador é desconectado se a sessão expirar.
+*   **Proteção de Dados**: Ao nível da base de dados, foram implementadas políticas **RLS (Row Level Security)**. Por exemplo, a política `Users can update own profile` garante estritamente que `auth.uid() = id`, impedindo qualquer acesso não autorizado via API.
+
+#### 2. Motor de Agendamento Inteligente
+*   **Fluxo Sequencial**: A interface guia o utilizador por etapas (Barbeiro -> Serviço -> Data) para reduzir a carga cognitiva. O estado de cada etapa é preservado até à confirmação.
+*   **Algoritmo de Disponibilidade (`getRealAvailableSlots`)**:
+    1.  **Input**: Recebe a data selecionada e a duração do serviço (ex: 45 min) da tabela `servicos`.
+    2.  **Query**: Executa um `SELECT` na tabela `Marcacoes` filtrando apenas pelo dia e barbeiro relevantes.
+    3.  **Processamento**: Gera slots virtuais de 30 em 30 minutos (09:00, 09:30...).
+    4.  **Validação Matemática**: Para cada slot, utiliza as funções `isBefore` e `isAfter` (date-fns) para verificar se o intervalo `[SlotStart, SlotEnd]` colide com algum intervalo de agendamento existente `[AptStart, AptEnd]`.
+    5.  **Output**: Retorna ao frontend apenas a lista de horários livres, eliminando a possibilidade de erro humano na escolha.
+
+#### 3. E-commerce Integrado
+*   **Gestão de Estado (Client-Side)**: O carrinho de compras não sobrecarrega a base de dados. É gerido inteiramente no cliente via `CartContext` e persistido no `localStorage` do browser para resistir a "page reloads".
+*   **Validação de Stock Otimista**: A função `addToCart` implementa uma guarda lógica:
+    ```typescript
+    if (quantidadeNoCarrinho + 1 > produto.stock) return alert("Sem stock");
+    ```
+    Isto previne pedidos inválidos ao backend e melhora a UX com feedback instantâneo.
+
+#### 4. Gestão de Perfil
+*   **Sincronização Dual**: A atualização de dados pessoais requer consistência em dois locais. O formulário em `Profile.tsx` executa uma transação implícita:
+    1.  Atualiza a tabela pública `perfis` (nome, telemóvel) para exibição na app.
+    2.  Invoca `auth.updateUser` para atualizar os metadados protegidos do utilizador no sistema de autenticação.
+*   **Histórico em Tempo Real**: A lista de cortes utiliza *Subscriptions* do Supabase para atualizar a vista automaticamente se o estado de uma marcação mudar (ex: de 'pendente' para 'confirmado' pelo admin) sem o utilizador precisar de atualizar a página.
 
 ---
 

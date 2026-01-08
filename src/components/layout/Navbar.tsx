@@ -202,7 +202,7 @@ const Navbar: React.FC = () => {
                             onClick={() => setIsOpen(!isOpen)}
                             className="inline-flex items-center justify-center p-2 rounded-md text-gray-400 hover:text-white hover:bg-gray-700 focus:outline-none"
                         >
-                            {isOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+                            {isOpen ? <X className="h-7 w-7" /> : <Menu className="h-7 w-7" />}
                         </button>
                     </div>
                 </div>
@@ -212,30 +212,33 @@ const Navbar: React.FC = () => {
             <AnimatePresence>
                 {isOpen && (
                     <motion.div
-                        className="md:hidden bg-dark-bg border-t border-gray-800 absolute w-full"
+                        className="md:hidden bg-dark-bg/95 backdrop-blur-xl border-t border-gray-800 absolute w-full shadow-2xl overflow-hidden"
                         initial={{ opacity: 0, height: 0 }}
                         animate={{ opacity: 1, height: 'auto' }}
                         exit={{ opacity: 0, height: 0 }}
                         transition={{ duration: 0.3 }}
                     >
-                        <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3">
+                        <div className="px-4 pt-4 pb-6 space-y-2">
                             {navLinks.map((link) => (
                                 <Link
                                     key={link.name}
                                     to={link.path}
                                     onClick={() => setIsOpen(false)}
                                     className={clsx(
-                                        'block px-3 py-2 rounded-md text-base font-medium',
+                                        'block px-4 py-3 rounded-lg text-base font-medium transition-colors',
                                         isActive(link.path)
-                                            ? 'text-primary bg-gray-900'
-                                            : 'text-gray-300 hover:text-white hover:bg-gray-700'
+                                            ? 'text-primary bg-primary/10'
+                                            : 'text-gray-300 hover:text-white hover:bg-white/5'
                                     )}
                                 >
-                                    {link.name}
+                                    <div className="flex items-center gap-3">
+                                        <link.icon className="w-5 h-5" />
+                                        {link.name}
+                                    </div>
                                 </Link>
                             ))}
 
-                            <div className="border-t border-gray-700 pt-4 mt-4">
+                            <div className="border-t border-gray-800 pt-4 mt-4 space-y-3">
                                 {user ? (
                                     <>
                                         <Link
@@ -275,24 +278,25 @@ const Navbar: React.FC = () => {
                                         </Link>
                                         <button
                                             onClick={handleSignOut}
-                                            className="block w-full text-left px-3 py-2 rounded-md text-base font-medium text-red-500 hover:bg-gray-700 mt-2"
+                                            className="block w-full text-left px-4 py-3 rounded-lg text-base font-medium text-red-500 hover:bg-white/5 hover:text-red-400 mt-2 transition-colors flex items-center gap-3"
                                         >
+                                            <LogOut className="w-5 h-5" />
                                             Sair
                                         </button>
                                     </>
                                 ) : (
-                                    <div className="space-y-3 px-3">
+                                    <div className="gap-3 grid grid-cols-2 px-2">
                                         <Link
                                             to="/login"
                                             onClick={() => setIsOpen(false)}
-                                            className="block text-center text-gray-300 hover:text-white font-medium"
+                                            className="block text-center text-white font-bold py-3 px-4 rounded-lg bg-white/5 hover:bg-white/10 transition-colors"
                                         >
                                             Entrar
                                         </Link>
                                         <Link
                                             to="/registo"
                                             onClick={() => setIsOpen(false)}
-                                            className="block w-full text-center btn-primary"
+                                            className="block text-center btn-primary py-3 rounded-lg shadow-lg shadow-primary/10"
                                         >
                                             Registar
                                         </Link>

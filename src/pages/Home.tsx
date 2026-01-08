@@ -36,9 +36,9 @@ const Home: React.FC = () => {
             </PageHeader>
 
             {/* The Story Section (Moved from About) */}
-            <section className="py-24 bg-dark-bg relative">
+            <section className="py-16 md:py-24 bg-dark-bg relative">
                 <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <div className="grid md:grid-cols-2 gap-16 items-center">
+                    <div className="grid md:grid-cols-2 gap-12 md:gap-16 items-center">
                         <motion.div {...fadeIn}>
                             <h2 className="font-heading text-3xl md:text-4xl text-white mb-8 border-l-4 border-primary pl-6">
                                 Tradição desde 2015
@@ -71,7 +71,7 @@ const Home: React.FC = () => {
             </section>
 
             {/* Features Section */}
-            <section className="py-32 relative z-20 overflow-hidden">
+            <section className="py-20 md:py-32 relative z-20 overflow-hidden">
                 {/* Background Texture */}
                 <div className="absolute inset-0 z-0 opacity-20">
                     <img
@@ -83,12 +83,12 @@ const Home: React.FC = () => {
                 <div className="absolute inset-0 bg-dark-bg/90 z-0" />
 
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-                    <div className="text-center mb-20">
-                        <h2 className="text-primary font-bold tracking-widest uppercase mb-3 text-sm">Por que nos escolher</h2>
-                        <h3 className="text-4xl md:text-5xl font-heading font-bold text-white">A Experiência Dourado</h3>
+                    <div className="text-center mb-12 md:mb-20">
+                        <h2 className="text-primary font-bold tracking-widest uppercase mb-3 text-xs md:text-sm">Por que nos escolher</h2>
+                        <h3 className="text-3xl md:text-5xl font-heading font-bold text-white">A Experiência Dourado</h3>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-8 md:gap-10">
                         <ScrollReveal delay={0.1} className="h-full">
                             <TiltCard className="bg-card-bg p-10 rounded-2xl border border-white/5 h-full group hover:border-primary/30 transition-colors duration-500">
                                 <div className="w-16 h-16 bg-dark-bg rounded-2xl flex items-center justify-center mb-8 group-hover:bg-primary/10 transition-colors border border-white/5 group-hover:border-primary/20">
@@ -129,11 +129,11 @@ const Home: React.FC = () => {
             </section>
 
             {/* Services Preview Section */}
-            <section className="py-24 bg-dark-bg relative">
+            <section className="py-16 md:py-24 bg-dark-bg relative">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <div className="text-center mb-16">
-                        <h2 className="text-primary font-bold tracking-widest uppercase mb-3 text-sm">Nossos Serviços</h2>
-                        <h3 className="text-4xl md:text-5xl font-heading font-bold text-white">O Que Oferecemos</h3>
+                    <div className="text-center mb-12 md:mb-16">
+                        <h2 className="text-primary font-bold tracking-widest uppercase mb-3 text-xs md:text-sm">Nossos Serviços</h2>
+                        <h3 className="text-3xl md:text-5xl font-heading font-bold text-white">O Que Oferecemos</h3>
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
@@ -198,12 +198,12 @@ const Home: React.FC = () => {
             </section>
 
             {/* Shop Preview Section */}
-            <section className="py-24 relative overflow-hidden">
+            <section className="py-16 md:py-24 relative overflow-hidden">
                 <div className="absolute inset-0 bg-dark-bg/50 z-0" />
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-                    <div className="text-center mb-16">
-                        <h2 className="text-primary font-bold tracking-widest uppercase mb-3 text-sm">Loja Online</h2>
-                        <h3 className="text-4xl md:text-5xl font-heading font-bold text-white">Cuide de si em casa</h3>
+                    <div className="text-center mb-12 md:mb-16">
+                        <h2 className="text-primary font-bold tracking-widest uppercase mb-3 text-xs md:text-sm">Loja Online</h2>
+                        <h3 className="text-3xl md:text-5xl font-heading font-bold text-white">Cuide de si em casa</h3>
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
@@ -259,12 +259,12 @@ const Home: React.FC = () => {
             </section>
 
             {/* Gallery Preview Section */}
-            <section className="py-24 bg-black/20 relative overflow-hidden">
+            <section className="py-16 md:py-24 bg-black/20 relative overflow-hidden">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <div className="flex flex-col md:flex-row items-end justify-between mb-12">
+                    <div className="flex flex-col md:flex-row items-end justify-between mb-8 md:mb-12">
                         <div>
-                            <h2 className="text-primary font-bold tracking-widest uppercase mb-3 text-sm">Galeria</h2>
-                            <h3 className="text-4xl md:text-5xl font-heading font-bold text-white">Nossos Trabalhos</h3>
+                            <h2 className="text-primary font-bold tracking-widest uppercase mb-3 text-xs md:text-sm">Galeria</h2>
+                            <h3 className="text-3xl md:text-5xl font-heading font-bold text-white">Nossos Trabalhos</h3>
                         </div>
                         <Link to="/galeria" className="hidden md:flex items-center text-primary hover:text-white transition-colors font-bold uppercase tracking-wider text-sm">
                             Ver Galeria Completa <ArrowRight className="ml-2 w-5 h-5" />
@@ -300,21 +300,21 @@ const Home: React.FC = () => {
             </section>
 
             {/* CTA Section */}
-            <section className="py-32 relative overflow-hidden">
+            <section className="py-20 md:py-32 relative overflow-hidden">
                 <div className="absolute inset-0 bg-primary/5 z-0" />
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
                     <div className="flex flex-col md:flex-row items-center justify-between bg-card-bg border border-white/5 p-16 rounded-3xl relative overflow-hidden shadow-2xl">
                         <div className="absolute top-0 right-0 w-full h-full bg-gradient-to-l from-black/80 to-transparent z-0" />
 
                         <div className="relative z-10 mb-10 md:mb-0 max-w-xl">
-                            <h2 className="text-4xl md:text-5xl font-heading font-bold text-white mb-6">Pronto para renovar o visual?</h2>
-                            <p className="text-gray-400 text-lg leading-relaxed">
+                            <h2 className="text-3xl md:text-5xl font-heading font-bold text-white mb-6">Pronto para renovar o visual?</h2>
+                            <p className="text-gray-400 text-base md:text-lg leading-relaxed">
                                 Não espere mais. Garanta seu horário com os melhores profissionais da região e sinta a diferença.
                             </p>
                         </div>
 
-                        <div className="relative z-10">
-                            <Link to="/agendar" className="btn-primary px-10 py-5 text-lg font-bold uppercase tracking-wider flex items-center group shadow-xl shadow-primary/20">
+                        <div className="relative z-10 w-full md:w-auto">
+                            <Link to="/agendar" className="btn-primary w-full md:w-auto px-10 py-5 text-lg font-bold uppercase tracking-wider flex items-center justify-center group shadow-xl shadow-primary/20">
                                 Agendar Visita <ArrowRight className="ml-3 w-6 h-6 group-hover:translate-x-1 transition-transform" />
                             </Link>
                         </div>

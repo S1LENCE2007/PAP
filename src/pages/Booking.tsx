@@ -248,7 +248,7 @@ const Booking: React.FC = () => {
                                     transition={{ duration: 0.3 }}
                                 >
                                     <h2 className="text-xl font-bold mb-6 flex items-center"><User className="mr-2 text-primary" /> Escolha o Profissional</h2>
-                                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+                                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 md:gap-6">
                                         {barbers.map((barber) => (
                                             <button
                                                 key={barber.id}
@@ -386,7 +386,7 @@ const Booking: React.FC = () => {
                                                     <Sun className="w-4 h-4 mr-2 text-yellow-500" />
                                                     <span className="text-sm font-bold uppercase tracking-wider">Manhã</span>
                                                 </div>
-                                                <div className="grid grid-cols-3 md:grid-cols-5 gap-3">
+                                                <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2 md:gap-3">
                                                     {availableSlots.filter(s => parseInt(s.time.split(':')[0]) < 12).map((slot) => (
                                                         <button
                                                             key={slot.time}
@@ -414,7 +414,7 @@ const Booking: React.FC = () => {
                                                     </div>
                                                     <span className="text-sm font-bold uppercase tracking-wider">Tarde</span>
                                                 </div>
-                                                <div className="grid grid-cols-3 md:grid-cols-5 gap-3">
+                                                <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2 md:gap-3">
                                                     {availableSlots.filter(s => parseInt(s.time.split(':')[0]) >= 12).map((slot) => (
                                                         <button
                                                             key={slot.time}
@@ -506,11 +506,11 @@ const Booking: React.FC = () => {
                                         </div>
                                     </div>
 
-                                    <div className="mt-8 flex justify-between items-center">
-                                        <button type="button" onClick={prevStep} className="text-gray-400 hover:text-white">Voltar</button>
+                                    <div className="mt-8 flex flex-col-reverse sm:flex-row justify-between items-center gap-4">
+                                        <button type="button" onClick={prevStep} className="w-full sm:w-auto text-gray-400 hover:text-white py-3">Voltar</button>
                                         <button
                                             onClick={handleSubmit}
-                                            className="btn-primary font-bold uppercase tracking-wide px-8 py-3 shadow-[0_0_20px_rgba(212,175,55,0.3)] hover:shadow-[0_0_30px_rgba(212,175,55,0.5)] transform hover:-translate-y-1 transition-all"
+                                            className="w-full sm:w-auto btn-primary font-bold uppercase tracking-wide px-8 py-3 shadow-[0_0_20px_rgba(212,175,55,0.3)] hover:shadow-[0_0_30px_rgba(212,175,55,0.5)] transform hover:-translate-y-1 transition-all flex justify-center"
                                         >
                                             Confirmar Agendamento
                                         </button>

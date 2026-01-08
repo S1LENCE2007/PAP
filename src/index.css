@@ -42,7 +42,7 @@
   }
 
   .section-padding {
-    @apply py-24 px-4 md:px-8 lg:px-16;
+    @apply py-16 px-4 md:py-24 md:px-8 lg:px-16;
   }
 
   /* Glassmorphism */
