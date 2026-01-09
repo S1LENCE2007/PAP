@@ -3,8 +3,13 @@ import { Navigate, Outlet } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { Loader } from 'lucide-react';
 
-const ProtectedRoute: React.FC = () => {
-    const { user, loading } = useAuth();
+interface ProtectedRouteProps {
+    allowedRoles?: string[];
+    children?: React.ReactNode;
+}
+
+const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ allowedRoles, children }) => {
+    const { user, loading, role } = useAuth();
 
     if (loading) {
         return (
@@ -14,7 +19,15 @@ const ProtectedRoute: React.FC = () => {
         );
     }
 
-    return user ? <Outlet /> : <Navigate to="/login" replace />;
+    if (!user) {
+        return <Navigate to="/login" replace />;
+    }
+
+    if (allowedRoles && role && !allowedRoles.includes(role)) {
+        return <Navigate to="/" replace />; // Redirect to home if unauthorized
+    }
+
+    return children ? <>{children}</> : <Outlet />;
 };
 
 export default ProtectedRoute;

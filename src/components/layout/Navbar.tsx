@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Menu, X, Scissors, User, LogOut, ShoppingBag, Image, Phone, LayoutDashboard, Star, ChevronDown, Calendar } from 'lucide-react';
+import { Menu, X, Scissors, User, LogOut, ShoppingBag, Image, Phone, LayoutDashboard, Star, ChevronDown, Calendar, CheckCircle } from 'lucide-react';
 import { clsx } from 'clsx';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../../contexts/AuthContext';
@@ -139,6 +139,26 @@ const Navbar: React.FC = () => {
                                                 <User className="w-4 h-4 mr-3" />
                                                 Meu Perfil
                                             </Link>
+
+                                            <Link
+                                                to="/minhas-encomendas"
+                                                onClick={() => setUserMenuOpen(false)}
+                                                className="flex items-center px-4 py-2 text-sm text-gray-300 hover:bg-gray-800 hover:text-primary transition-colors"
+                                            >
+                                                <ShoppingBag className="w-4 h-4 mr-3" />
+                                                Minhas Encomendas
+                                            </Link>
+
+                                            {(isAdmin || role === 'barbeiro') && (
+                                                <Link
+                                                    to="/verificar-encomenda"
+                                                    onClick={() => setUserMenuOpen(false)}
+                                                    className="flex items-center px-4 py-2 text-sm text-gray-300 hover:bg-gray-800 hover:text-primary transition-colors"
+                                                >
+                                                    <CheckCircle className="w-4 h-4 mr-3" />
+                                                    Verificar Encomenda
+                                                </Link>
+                                            )}
 
 
 
@@ -307,7 +327,7 @@ const Navbar: React.FC = () => {
                     </motion.div>
                 )}
             </AnimatePresence>
-        </nav>
+        </nav >
     );
 };
 

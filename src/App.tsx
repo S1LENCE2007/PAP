@@ -27,6 +27,8 @@ import AdminProducts from './pages/admin/Products';
 import AdminGallery from './pages/admin/Gallery';
 import AdminServices from './pages/admin/Services';
 import BarberDashboard from './pages/barber/Dashboard';
+import MyOrders from './pages/MyOrders';
+import VerifyOrder from './pages/admin/VerifyOrder';
 
 import './App.css';
 
@@ -55,9 +57,16 @@ function App() {
                 <Route path="/agendar" element={<Booking />} />
                 <Route path="/perfil" element={<Profile />} />
                 <Route path="/barbeiro" element={<BarberDashboard />} />
+                <Route path="/minhas-encomendas" element={<MyOrders />} />
               </Route>
 
-              {/* Admin Routes - Now Integrated with MainLayout */}
+              {/* Admin Routes - Now Integrated with MainLayout below */}
+
+              <Route path="/verificar-encomenda" element={
+                <ProtectedRoute allowedRoles={['admin', 'barbeiro']}>
+                  <VerifyOrder />
+                </ProtectedRoute>
+              } />
               <Route path="/admin" element={<AdminLayout />}>
                 <Route index element={<AdminDashboard />} />
                 <Route path="agendamentos" element={<AdminAppointments />} />
