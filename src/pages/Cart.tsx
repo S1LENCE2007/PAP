@@ -1,13 +1,19 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Trash2, Plus, Minus, ArrowLeft, CreditCard } from 'lucide-react';
+import { Trash2, Plus, Minus, ArrowLeft, CreditCard, Loader } from 'lucide-react';
 import { useCart } from '../contexts/CartContext';
+import { useAuth } from '../contexts/AuthContext';
+import { supabase } from '../utils/supabase';
 
 import PageHeader from '../components/layout/PageHeader';
 
 const Cart: React.FC = () => {
-    const { items, removeFromCart, updateQuantity, total, itemCount } = useCart();
+    const { items, removeFromCart, updateQuantity, total, itemCount, clearCart } = useCart();
+    const { user } = useAuth();
+    const [isCheckingOut, setIsCheckingOut] = React.useState(false);
+    const navigate = useNavigate();
+
 
     if (items.length === 0) {
         return (
@@ -106,8 +112,42 @@ const Cart: React.FC = () => {
                                 </div>
                             </div>
 
-                            <button className="w-full btn-primary py-3 font-bold uppercase tracking-wide flex items-center justify-center">
-                                <CreditCard className="w-5 h-5 mr-2" /> Finalizar Compra
+                            <button
+                                onClick={async () => {
+                                    if (!user) {
+                                        alert('Por favor, faça login para finalizar a compra.');
+                                        return;
+                                    }
+
+                                    setIsCheckingOut(true);
+                                    try {
+                                        // Generate random 6-char code
+                                        const code = Math.random().toString(36).substring(2, 8).toUpperCase();
+
+                                        const { error } = await supabase.from('encomendas').insert({
+                                            cliente_id: user.id,
+                                            itens: items,
+                                            total: total,
+                                            status: 'pendente',
+                                            codigo: code
+                                        });
+
+                                        if (error) throw error;
+
+                                        clearCart();
+                                        alert(`Encomenda registada com sucesso! O seu código de levantamento é: ${code}`);
+                                        navigate('/');
+                                    } catch (err) {
+                                        console.error('Erro na encomenda:', err);
+                                        alert('Erro ao finalizar encomenda.');
+                                    } finally {
+                                        setIsCheckingOut(false);
+                                    }
+                                }}
+                                disabled={isCheckingOut}
+                                className="w-full btn-primary py-3 font-bold uppercase tracking-wide flex items-center justify-center disabled:opacity-50"
+                            >
+                                {isCheckingOut ? <Loader className="w-5 h-5 animate-spin" /> : <><CreditCard className="w-5 h-5 mr-2" /> Finalizar Compra</>}
                             </button>
 
                             <p className="text-xs text-center text-gray-500 mt-4">
