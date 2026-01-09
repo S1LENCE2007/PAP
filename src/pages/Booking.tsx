@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../contexts/AuthContext';
 import { Calendar, Check, User, Scissors, Clock, Sun, Sparkles, Loader } from 'lucide-react';
@@ -46,6 +46,7 @@ const Booking: React.FC = () => {
     const [selectedSlotBarberId, setSelectedSlotBarberId] = useState<string | null>(null);
 
     const location = useLocation();
+    const navigate = useNavigate();
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     useEffect(() => {
@@ -544,7 +545,7 @@ const Booking: React.FC = () => {
                                     <p className="text-gray-300 mb-8 max-w-md mx-auto">
                                         Obrigado, <span className="text-primary font-bold">{user?.user_metadata?.nome || 'Cliente'}</span>. O seu horário para <span className="text-white font-bold">{selectedService?.nome}</span> foi reservado com sucesso.
                                     </p>
-                                    <button onClick={() => window.location.href = '/'} className="btn-primary">
+                                    <button onClick={() => navigate('/')} className="btn-primary">
                                         Voltar para o Início
                                     </button>
                                 </motion.div>
