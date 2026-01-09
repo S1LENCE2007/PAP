@@ -121,8 +121,10 @@ const Cart: React.FC = () => {
 
                                     setIsCheckingOut(true);
                                     try {
-                                        // Generate random 6-char code
-                                        const code = Math.random().toString(36).substring(2, 8).toUpperCase();
+                                        // Generate random 12-char code
+                                        const codePart1 = Math.random().toString(36).substring(2);
+                                        const codePart2 = Math.random().toString(36).substring(2);
+                                        const code = (codePart1 + codePart2).substring(0, 12).toUpperCase();
 
                                         const { error } = await supabase.from('encomendas').insert({
                                             cliente_id: user.id,

@@ -5,7 +5,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../utils/supabase';
 import {
     User, Clock, LogOut, Loader, X, Repeat,
-    Edit2, Save, Shield, Scissors, History, Mail, Phone, Lock
+    Edit2, Save, Shield, Scissors, History, Mail, Phone, Lock, ShoppingBag, QrCode
 } from 'lucide-react';
 import PageHeader from '../components/layout/PageHeader';
 import { clsx } from 'clsx';
@@ -29,8 +29,10 @@ const Profile: React.FC = () => {
     const navigate = useNavigate();
     const location = useLocation();
     const [appointments, setAppointments] = useState<Appointment[]>([]);
+    const [orders, setOrders] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
-    const [activeTab, setActiveTab] = useState<'upcoming' | 'history' | 'settings'>('upcoming');
+    const [ordersLoading, setOrdersLoading] = useState(false);
+    const [activeTab, setActiveTab] = useState<'upcoming' | 'history' | 'orders' | 'settings'>('upcoming');
 
     // Profile Form State
     const [profileData, setProfileData] = useState({
@@ -114,7 +116,27 @@ const Profile: React.FC = () => {
             }
         };
 
+        const fetchOrders = async () => {
+            if (!user) return;
+            setOrdersLoading(true);
+            try {
+                const { data, error } = await supabase
+                    .from('encomendas')
+                    .select('*')
+                    .eq('cliente_id', user.id)
+                    .order('created_at', { ascending: false });
+
+                if (error) throw error;
+                setOrders(data || []);
+            } catch (error) {
+                console.error('Erro ao buscar encomendas:', error);
+            } finally {
+                setOrdersLoading(false);
+            }
+        };
+
         fetchAppointments();
+        fetchOrders();
     }, [user]);
 
     const handleProfileUpdate = async (e: React.FormEvent) => {
@@ -204,7 +226,7 @@ const Profile: React.FC = () => {
         <div className="min-h-screen bg-dark-bg text-gray-100">
             <PageHeader
                 title={<>MEU <span className="text-primary">DASHBOARD</span></>}
-                subtitle="Faça a gestão do seu perfil e dos seus agendamentos exclusivos."
+                subtitle="Faça a gestão do seu perfil, agendamentos e encomendas."
                 backgroundImage="https://images.unsplash.com/photo-1621605815971-fbc98d665033?q=80&w=2070&auto=format&fit=crop"
             />
 
@@ -279,42 +301,26 @@ const Profile: React.FC = () => {
                     <div className="lg:col-span-2">
                         {/* Tabs */}
                         <div className="flex items-center gap-6 mb-8 border-b border-white/5 overflow-x-auto">
-                            <button
-                                onClick={() => setActiveTab('upcoming')}
-                                className={clsx(
-                                    "pb-4 text-sm font-bold uppercase tracking-wider relative transition-colors whitespace-nowrap",
-                                    activeTab === 'upcoming' ? "text-primary" : "text-gray-500 hover:text-gray-300"
-                                )}
-                            >
-                                Próximos
-                                {activeTab === 'upcoming' && (
-                                    <motion.div layoutId="activeTab" className="absolute bottom-0 left-0 w-full h-0.5 bg-primary" />
-                                )}
-                            </button>
-                            <button
-                                onClick={() => setActiveTab('history')}
-                                className={clsx(
-                                    "pb-4 text-sm font-bold uppercase tracking-wider relative transition-colors whitespace-nowrap",
-                                    activeTab === 'history' ? "text-primary" : "text-gray-500 hover:text-gray-300"
-                                )}
-                            >
-                                Histórico
-                                {activeTab === 'history' && (
-                                    <motion.div layoutId="activeTab" className="absolute bottom-0 left-0 w-full h-0.5 bg-primary" />
-                                )}
-                            </button>
-                            <button
-                                onClick={() => setActiveTab('settings')}
-                                className={clsx(
-                                    "pb-4 text-sm font-bold uppercase tracking-wider relative transition-colors whitespace-nowrap",
-                                    activeTab === 'settings' ? "text-primary" : "text-gray-500 hover:text-gray-300"
-                                )}
-                            >
-                                Definições
-                                {activeTab === 'settings' && (
-                                    <motion.div layoutId="activeTab" className="absolute bottom-0 left-0 w-full h-0.5 bg-primary" />
-                                )}
-                            </button>
+                            {[
+                                { id: 'upcoming', label: 'Próximos' },
+                                { id: 'history', label: 'Histórico' },
+                                { id: 'orders', label: 'Encomendas' },
+                                { id: 'settings', label: 'Definições' }
+                            ].map(tab => (
+                                <button
+                                    key={tab.id}
+                                    onClick={() => setActiveTab(tab.id as any)}
+                                    className={clsx(
+                                        "pb-4 text-sm font-bold uppercase tracking-wider relative transition-colors whitespace-nowrap",
+                                        activeTab === tab.id ? "text-primary" : "text-gray-500 hover:text-gray-300"
+                                    )}
+                                >
+                                    {tab.label}
+                                    {activeTab === tab.id && (
+                                        <motion.div layoutId="activeTab" className="absolute bottom-0 left-0 w-full h-0.5 bg-primary" />
+                                    )}
+                                </button>
+                            ))}
                         </div>
 
                         {loading ? (
@@ -322,6 +328,7 @@ const Profile: React.FC = () => {
                                 <Loader className="w-10 h-10 text-primary animate-spin" />
                             </div>
                         ) : activeTab === 'settings' ? (
+                            // Settings Tab Content
                             <motion.div
                                 initial={{ opacity: 0, y: 10 }}
                                 animate={{ opacity: 1, y: 0 }}
@@ -419,7 +426,77 @@ const Profile: React.FC = () => {
                                     </form>
                                 </div>
                             </motion.div>
+                        ) : activeTab === 'orders' ? (
+                            // ORDERS TAB Content
+                            <div className="space-y-6">
+                                {ordersLoading ? (
+                                    <div className="text-center py-10"><Loader className="w-8 h-8 text-primary animate-spin mx-auto" /></div>
+                                ) : orders.length > 0 ? (
+                                    orders.map((order) => (
+                                        <motion.div
+                                            key={order.id}
+                                            initial={{ opacity: 0, y: 20 }}
+                                            animate={{ opacity: 1, y: 0 }}
+                                            className="bg-dark/40 border border-white/5 rounded-2xl overflow-hidden hover:border-primary/30 transition-all"
+                                        >
+                                            <div className="p-6">
+                                                <div className="flex flex-wrap justify-between items-start gap-4 mb-4">
+                                                    <div>
+                                                        <span className="text-xs font-bold text-gray-500 uppercase tracking-widest">Encomenda #{order.id.slice(0, 4)}</span>
+                                                        <h4 className="text-lg font-bold text-white mt-1 flex items-center gap-2">
+                                                            {new Date(order.created_at).toLocaleDateString('pt-PT')}
+                                                            <span className={`text-xs px-2 py-0.5 rounded-full border ${order.status === 'entregue' ? 'bg-green-500/10 text-green-500 border-green-500/20' :
+                                                                'bg-yellow-500/10 text-yellow-500 border-yellow-500/20'
+                                                                }`}>
+                                                                {order.status}
+                                                            </span>
+                                                        </h4>
+                                                    </div>
+                                                    <div className="text-right">
+                                                        <span className="text-2xl font-bold text-primary">{order.total}€</span>
+                                                    </div>
+                                                </div>
+
+                                                <div className="bg-white/5 rounded-xl p-4 mb-4">
+                                                    <ul className="space-y-2">
+                                                        {order.itens?.map((item: any, i: number) => (
+                                                            <li key={i} className="flex justify-between text-sm text-gray-300">
+                                                                <span>{item.quantity}x {item.nome}</span>
+                                                                <span className="font-bold">{item.preco}€</span>
+                                                            </li>
+                                                        ))}
+                                                    </ul>
+                                                </div>
+
+                                                {order.status !== 'entregue' && order.status !== 'cancelado' && (
+                                                    <div className="flex items-center gap-4 bg-primary/10 p-3 rounded-xl border border-primary/20">
+                                                        <div className="bg-white p-2 rounded-lg">
+                                                            <QrCode className="w-6 h-6 text-black" />
+                                                        </div>
+                                                        <div>
+                                                            <p className="text-xs text-primary font-bold uppercase tracking-wider">Código de Levantamento</p>
+                                                            <p className="text-xl font-mono font-bold text-white tracking-[0.2em]">{order.codigo}</p>
+                                                        </div>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </motion.div>
+                                    ))
+                                ) : (
+                                    <div className="bg-dark/30 border border-white/5 rounded-2xl p-12 text-center flex flex-col items-center">
+                                        <div className="w-16 h-16 bg-gray-800 rounded-full flex items-center justify-center mb-4">
+                                            <ShoppingBag className="w-8 h-8 text-gray-500" />
+                                        </div>
+                                        <h3 className="text-xl font-bold text-white mb-2">Sem encomendas</h3>
+                                        <p className="text-gray-400 mb-8 max-w-sm">Ainda não realizou nenhuma compra na nossa loja.</p>
+                                        <button onClick={() => navigate('/loja')} className="btn-primary px-8 py-3">
+                                            Ir para a Loja
+                                        </button>
+                                    </div>
+                                )}
+                            </div>
                         ) : displayAppointments.length > 0 ? (
+                            // Appointments List (Upcoming/History)
                             <div className="space-y-4">
                                 <AnimatePresence mode="popLayout">
                                     {displayAppointments.map((apt) => (
@@ -492,6 +569,7 @@ const Profile: React.FC = () => {
                                 </AnimatePresence>
                             </div>
                         ) : (
+                            // Empty State for Appointments
                             <div className="bg-dark/30 border border-white/5 rounded-2xl p-12 text-center flex flex-col items-center">
                                 <div className="w-16 h-16 bg-gray-800 rounded-full flex items-center justify-center mb-4">
                                     <History className="w-8 h-8 text-gray-500" />

@@ -153,10 +153,11 @@ const Navbar: React.FC = () => {
                                                 <Link
                                                     to="/verificar-encomenda"
                                                     onClick={() => setUserMenuOpen(false)}
-                                                    className="flex items-center px-4 py-2 text-sm text-gray-300 hover:bg-gray-800 hover:text-primary transition-colors"
+                                                    className="block px-4 py-2 text-sm text-gray-300 hover:bg-white/5 hover:text-primary flex items-center gap-2"
+                                                    role="menuitem"
                                                 >
-                                                    <CheckCircle className="w-4 h-4 mr-3" />
-                                                    Verificar Encomenda
+                                                    <CheckCircle className="w-4 h-4" />
+                                                    Validar Encomenda
                                                 </Link>
                                             )}
 
