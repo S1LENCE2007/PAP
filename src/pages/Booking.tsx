@@ -511,9 +511,9 @@ const Booking: React.FC = () => {
                                         <button type="button" onClick={prevStep} className="w-full sm:w-auto text-gray-400 hover:text-white py-3">Voltar</button>
                                         <button
                                             onClick={handleSubmit}
-                                            className="w-full sm:w-auto btn-primary font-bold uppercase tracking-wide px-8 py-3 shadow-[0_0_20px_rgba(212,175,55,0.3)] hover:shadow-[0_0_30px_rgba(212,175,55,0.5)] transform hover:-translate-y-1 transition-all flex justify-center"
+                                            className="w-full sm:w-auto btn-primary font-bold uppercase tracking-wide px-12 py-3 shadow-[0_0_20px_rgba(212,175,55,0.3)] hover:shadow-[0_0_30px_rgba(212,175,55,0.5)] transform hover:-translate-y-1 transition-all flex justify-center"
                                         >
-                                            Confirmar Agendamento
+                                            Confirmar
                                         </button>
                                     </div>
 
