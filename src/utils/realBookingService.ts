@@ -14,7 +14,8 @@ const SLOT_INTERVAL = 30; // minutes
 export const getRealAvailableSlots = async (
     dateStr: string,
     serviceDuration: number,
-    barberId: string | 'any'
+    barberId: string | 'any',
+    excludeAppointmentId?: string
 ): Promise<TimeSlot[]> => {
     // 1. Fetch necessary data
     // If specific barber, fetch only their appointments.
@@ -38,6 +39,10 @@ export const getRealAvailableSlots = async (
 
     if (barberId !== 'any') {
         query = query.eq('barbeiro_id', barberId);
+    }
+    
+    if (excludeAppointmentId) {
+        query = query.neq('id', excludeAppointmentId);
     }
 
     const { data: appointments, error } = await query;
@@ -91,16 +96,21 @@ export const getRealAvailableSlots = async (
             continue;
         }
 
+        const now = new Date();
         let isAvailable = false;
         let candidateBarber: string | undefined = undefined;
 
-        // Check availability logic
-        // We look for ONE barber who is free for the entire duration [currentTime, slotEnd]
-        for (const bId of allBarbers) {
-            if (!isBarberBusy(bId, currentTime, slotEnd)) {
-                isAvailable = true;
-                candidateBarber = bId;
-                break; // Found one, that's enough to show the slot as available
+        if (isBefore(currentTime, now)) {
+            isAvailable = false; // Cannot book in the past
+        } else {
+            // Check availability logic
+            // We look for ONE barber who is free for the entire duration [currentTime, slotEnd]
+            for (const bId of allBarbers) {
+                if (!isBarberBusy(bId, currentTime, slotEnd)) {
+                    isAvailable = true;
+                    candidateBarber = bId;
+                    break; // Found one, that's enough to show the slot as available
+                }
             }
         }
 

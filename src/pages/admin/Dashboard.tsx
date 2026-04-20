@@ -13,7 +13,7 @@ const AdminDashboard: React.FC = () => {
         totalRevenue: 0
     });
     const navigate = useNavigate();
-    const [recentActivity, setRecentActivity] = useState<{ id: string; data_hora: string; status: string; perfis: { nome: string } | { nome: string }[] | null; servicos: { nome: string } | { nome: string }[] | null }[]>([]);
+    const [recentActivity, setRecentActivity] = useState<{ id: string; data_hora: string; status: string; perfis: { nome: string, telemovel?: string, email?: string } | { nome: string, telemovel?: string, email?: string }[] | null; servicos: { nome: string } | { nome: string }[] | null }[]>([]);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
@@ -36,7 +36,7 @@ const AdminDashboard: React.FC = () => {
                             id,
                             data_hora,
                             status,
-                            perfis (nome),
+                            perfis (nome, telemovel, email),
                             servicos (nome)
                         `)
                         .order('created_at', { ascending: false })
@@ -57,7 +57,11 @@ const AdminDashboard: React.FC = () => {
                     totalRevenue: totalRevenue
                 });
 
-                setRecentActivity(recentAptsResult.data || []);
+                const mappedRecent = (recentAptsResult.data || []).map(item => ({
+                    ...item,
+                    status: item.status === 'pendente' ? 'marcado' : item.status
+                }));
+                setRecentActivity(mappedRecent);
             } catch (error) {
                 console.error('Erro ao buscar estatísticas:', error);
             } finally {
@@ -150,7 +154,12 @@ const AdminDashboard: React.FC = () => {
                                                 <p className="font-bold text-white">
                                                     {Array.isArray(apt.perfis) ? apt.perfis[0]?.nome : apt.perfis?.nome || 'Cliente Desconhecido'}
                                                 </p>
-                                                <p className="text-sm text-gray-400">
+                                                <div className="flex flex-col sm:flex-row gap-1 sm:gap-3 text-xs text-gray-400 mt-0.5">
+                                                    <span>{Array.isArray(apt.perfis) ? apt.perfis[0]?.telemovel : apt.perfis?.telemovel}</span>
+                                                    <span className="hidden sm:inline">•</span>
+                                                    <span>{Array.isArray(apt.perfis) ? apt.perfis[0]?.email : apt.perfis?.email}</span>
+                                                </div>
+                                                <p className="text-sm text-primary mt-1">
                                                     {Array.isArray(apt.servicos) ? apt.servicos[0]?.nome : apt.servicos?.nome}
                                                 </p>
                                             </div>
@@ -161,10 +170,11 @@ const AdminDashboard: React.FC = () => {
                                                 {new Date(apt.data_hora).toLocaleDateString('pt-PT')}
                                             </div>
                                             <span className={`px-2 py-0.5 rounded text-xs font-bold uppercase tracking-wider
-                                                ${apt.status === 'confirmado' ? 'bg-green-500/20 text-green-400' :
-                                                    apt.status === 'pendente' ? 'bg-yellow-500/20 text-yellow-400' : 'bg-red-500/20 text-red-400'
+                                                ${apt.status === 'confirmado' ? 'bg-blue-500/20 text-blue-400' :
+                                                    (apt.status === 'marcado' || apt.status === 'pendente') ? 'bg-yellow-500/20 text-yellow-400' : 
+                                                    apt.status === 'concluido' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-red-500/20 text-red-400'
                                                 }`}>
-                                                {apt.status}
+                                                {apt.status === 'pendente' ? 'marcado' : apt.status}
                                             </span>
                                         </div>
                                     </div>

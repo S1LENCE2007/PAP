@@ -45,6 +45,8 @@ const Booking: React.FC = () => {
     // For 'Any Barber' feature: keeps track of which barber was actually assigned to the chosen slot
     const [selectedSlotBarberId, setSelectedSlotBarberId] = useState<string | null>(null);
 
+    const [editAppointmentId, setEditAppointmentId] = useState<string | null>(null);
+
     const location = useLocation();
     const navigate = useNavigate();
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -74,8 +76,30 @@ const Booking: React.FC = () => {
                 setServices(servicesRes.data || []);
 
                 // Handle pre-filled state after data load
-                const state = location.state as { serviceName?: string; barberName?: string } | null;
+                const state = location.state as { serviceName?: string; barberName?: string; editAppointmentId?: string; barberId?: string; serviceId?: string; serviceDuracao?: number; servicePreco?: number } | null;
                 if (state) {
+                    if (state.editAppointmentId) {
+                        setEditAppointmentId(state.editAppointmentId);
+                        
+                        const mockBarber = {
+                            id: state.barberId || '',
+                            nome: state.barberName || '',
+                            foto_url: '',
+                            disponivel: true
+                        };
+                        const mockService = {
+                            id: state.serviceId || '',
+                            nome: state.serviceName || '',
+                            preco: state.servicePreco || 0,
+                            duracao: state.serviceDuracao || 30
+                        };
+                        
+                        setSelectedBarber(mockBarber);
+                        setSelectedService(mockService);
+                        setStep(3);
+                        setLoadingData(false);
+                        return;
+                    }
                     let nextStep = 1;
                     if (state.barberName) {
                         const preSelectedBarber = sortedBarbers.find(b => b.nome === state.barberName);
@@ -156,20 +180,33 @@ const Booking: React.FC = () => {
         try {
             const dateTimeString = `${selectedDate}T${selectedTime}:00`;
             const dateObj = new Date(dateTimeString);
+            if (editAppointmentId) {
+                const { error } = await supabase
+                    .from('Marcacoes')
+                    .update({ 
+                        barbeiro_id: finalBarberId,
+                        servico_id: selectedService.id,
+                        data_hora: dateObj.toISOString(),
+                        status: 'pendente'
+                    })
+                    .eq('id', editAppointmentId);
 
-            const appointmentData = {
-                cliente_id: user.id,
-                barbeiro_id: finalBarberId,
-                servico_id: selectedService.id,
-                data_hora: dateObj.toISOString(),
-                status: 'pendente'
-            };
+                if (error) throw error;
+            } else {
+                const appointmentData = {
+                    cliente_id: user.id,
+                    barbeiro_id: finalBarberId,
+                    servico_id: selectedService.id,
+                    data_hora: dateObj.toISOString(),
+                    status: 'pendente'
+                };
 
-            const { error } = await supabase
-                .from('Marcacoes')
-                .insert([appointmentData]);
+                const { error } = await supabase
+                    .from('Marcacoes')
+                    .insert([appointmentData]);
 
-            if (error) throw error;
+                if (error) throw error;
+            }
 
             setStep(5);
         } catch (error) {
@@ -206,17 +243,17 @@ const Booking: React.FC = () => {
                             <div className="absolute top-1/2 left-0 w-full h-1 bg-gray-800 -z-10 -translate-y-1/2 rounded-full">
                                 <div
                                     className="h-full bg-primary transition-all duration-500 rounded-full"
-                                    style={{ width: `${((step - 1) / 4) * 100}%` }}
+                                    style={{ width: editAppointmentId ? `${((step - 3) / 2) * 100}%` : `${((step - 1) / 4) * 100}%` }}
                                 />
                             </div>
 
                             {[
                                 { num: 1, icon: User, label: 'Profissional' },
                                 { num: 2, icon: Scissors, label: 'Serviço' },
-                                { num: 3, icon: Calendar, label: 'Data' },
+                                { num: 3, icon: Calendar, label: editAppointmentId ? 'Nova Data' : 'Data' },
                                 { num: 4, icon: Check, label: 'Confirmar' },
                                 { num: 5, icon: Sparkles, label: 'Concluir' }
-                            ].map((s) => (
+                            ].filter(s => editAppointmentId ? s.num >= 3 : true).map((s) => (
                                 <div key={s.num} className="flex flex-col items-center group">
                                     <div className={clsx(
                                         "w-10 h-10 md:w-12 md:h-12 rounded-full flex items-center justify-center border-4 transition-all duration-300 z-10",
@@ -381,63 +418,83 @@ const Booking: React.FC = () => {
                                             animate={{ opacity: 1, y: 0 }}
                                             className="space-y-6"
                                         >
-                                            {/* Manhã */}
-                                            <div>
-                                                <div className="flex items-center mb-3 text-gray-300">
-                                                    <Sun className="w-4 h-4 mr-2 text-yellow-500" />
-                                                    <span className="text-sm font-bold uppercase tracking-wider">Manhã</span>
-                                                </div>
-                                                <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2 md:gap-3">
-                                                    {availableSlots.filter(s => parseInt(s.time.split(':')[0]) < 12).map((slot) => (
-                                                        <button
-                                                            key={slot.time}
-                                                            disabled={!slot.available}
-                                                            onClick={() => handleTimeSelect(slot.time, slot.barberId)}
-                                                            className={clsx(
-                                                                "py-2 px-1 rounded-lg text-sm font-medium transition-all duration-200 relative overflow-hidden",
-                                                                !slot.available && "bg-gray-800/50 text-gray-600 cursor-not-allowed border border-transparent",
-                                                                slot.available && selectedTime === slot.time && "bg-primary text-black font-bold shadow-lg shadow-primary/20 scale-105",
-                                                                slot.available && selectedTime !== slot.time && "bg-card-bg border border-gray-700 text-gray-300 hover:border-primary/50 hover:text-white"
-                                                            )}
-                                                        >
-                                                            {slot.time}
-                                                        </button>
-                                                    ))}
-                                                </div>
-                                            </div>
+                                            {(() => {
+                                                const morningSlots = availableSlots.filter(s => parseInt(s.time.split(':')[0]) < 12 && s.available);
+                                                const afternoonSlots = availableSlots.filter(s => parseInt(s.time.split(':')[0]) >= 12 && s.available);
 
-                                            {/* Tarde */}
-                                            <div>
-                                                <div className="flex items-center mb-3 text-gray-300">
-                                                    <div className="relative">
-                                                        <Sun className="w-4 h-4 mr-2 text-orange-500" />
-                                                        {/* Simple representation of sunset/afternoon */}
-                                                    </div>
-                                                    <span className="text-sm font-bold uppercase tracking-wider">Tarde</span>
-                                                </div>
-                                                <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2 md:gap-3">
-                                                    {availableSlots.filter(s => parseInt(s.time.split(':')[0]) >= 12).map((slot) => (
-                                                        <button
-                                                            key={slot.time}
-                                                            disabled={!slot.available}
-                                                            onClick={() => handleTimeSelect(slot.time, slot.barberId)}
-                                                            className={clsx(
-                                                                "py-2 px-1 rounded-lg text-sm font-medium transition-all duration-200 relative overflow-hidden",
-                                                                !slot.available && "bg-gray-800/50 text-gray-600 cursor-not-allowed border border-transparent",
-                                                                slot.available && selectedTime === slot.time && "bg-primary text-black font-bold shadow-lg shadow-primary/20 scale-105",
-                                                                slot.available && selectedTime !== slot.time && "bg-card-bg border border-gray-700 text-gray-300 hover:border-primary/50 hover:text-white"
-                                                            )}
-                                                        >
-                                                            {slot.time}
-                                                        </button>
-                                                    ))}
-                                                </div>
-                                            </div>
+                                                if (morningSlots.length === 0 && afternoonSlots.length === 0) {
+                                                    return (
+                                                        <div className="bg-red-500/10 border border-red-500/20 text-red-500 p-8 rounded-xl text-center">
+                                                            <Calendar className="w-10 h-10 mx-auto mb-4 opacity-80" />
+                                                            <p className="font-bold text-xl mb-2">Sem horários disponíveis</p>
+                                                            <p className="text-gray-400">Todos os horários para este dia já se encontram preenchidos ou já não estão disponíveis. Por favor, selecione outra data.</p>
+                                                        </div>
+                                                    );
+                                                }
+
+                                                return (
+                                                    <>
+                                                        {/* Manhã */}
+                                                        {morningSlots.length > 0 && (
+                                                            <div>
+                                                                <div className="flex items-center mb-3 text-gray-300">
+                                                                    <Sun className="w-4 h-4 mr-2 text-yellow-500" />
+                                                                    <span className="text-sm font-bold uppercase tracking-wider">Manhã</span>
+                                                                </div>
+                                                                <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2 md:gap-3">
+                                                                    {morningSlots.map((slot) => (
+                                                                        <button
+                                                                            key={slot.time}
+                                                                            onClick={() => handleTimeSelect(slot.time, slot.barberId)}
+                                                                            className={clsx(
+                                                                                "py-2 px-1 rounded-lg text-sm font-medium transition-all duration-200 relative overflow-hidden",
+                                                                                selectedTime === slot.time 
+                                                                                    ? "bg-primary text-black font-bold shadow-lg shadow-primary/20 scale-105" 
+                                                                                    : "bg-card-bg border border-gray-700 text-gray-300 hover:border-primary/50 hover:text-white"
+                                                                            )}
+                                                                        >
+                                                                            {slot.time}
+                                                                        </button>
+                                                                    ))}
+                                                                </div>
+                                                            </div>
+                                                        )}
+
+                                                        {/* Tarde */}
+                                                        {afternoonSlots.length > 0 && (
+                                                            <div>
+                                                                <div className="flex items-center mb-3 text-gray-300">
+                                                                    <Sun className="w-4 h-4 mr-2 text-orange-500" />
+                                                                    <span className="text-sm font-bold uppercase tracking-wider">Tarde</span>
+                                                                </div>
+                                                                <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2 md:gap-3">
+                                                                    {afternoonSlots.map((slot) => (
+                                                                        <button
+                                                                            key={slot.time}
+                                                                            onClick={() => handleTimeSelect(slot.time, slot.barberId)}
+                                                                            className={clsx(
+                                                                                "py-2 px-1 rounded-lg text-sm font-medium transition-all duration-200 relative overflow-hidden",
+                                                                                selectedTime === slot.time 
+                                                                                    ? "bg-primary text-black font-bold shadow-lg shadow-primary/20 scale-105" 
+                                                                                    : "bg-card-bg border border-gray-700 text-gray-300 hover:border-primary/50 hover:text-white"
+                                                                            )}
+                                                                        >
+                                                                            {slot.time}
+                                                                        </button>
+                                                                    ))}
+                                                                </div>
+                                                            </div>
+                                                        )}
+                                                    </>
+                                                );
+                                            })()}
                                         </motion.div>
                                     )}
 
                                     <div className="mt-8 flex justify-between">
-                                        <button onClick={prevStep} className="text-gray-400 hover:text-white">Voltar</button>
+                                        {!editAppointmentId ? (
+                                            <button onClick={prevStep} className="text-gray-400 hover:text-white">Voltar</button>
+                                        ) : <div></div>}
                                         <button
                                             onClick={nextStep}
                                             disabled={!selectedDate || !selectedTime}
@@ -474,7 +531,9 @@ const Booking: React.FC = () => {
 
                                         <div className="text-center mb-6">
                                             <h3 className="font-heading font-bold text-xl text-primary tracking-widest uppercase">Barbearia Dourado</h3>
-                                            <p className="text-xs text-gray-500 uppercase tracking-wide">Comprovativo de Pré-Agendamento</p>
+                                            <p className="text-xs text-gray-500 uppercase tracking-wide">
+                                                {editAppointmentId ? 'Comprovativo de Remarcação' : 'Comprovativo de Pré-Agendamento'}
+                                            </p>
                                         </div>
 
                                         <div className="space-y-4 relative z-10">
@@ -508,12 +567,14 @@ const Booking: React.FC = () => {
                                     </div>
 
                                     <div className="mt-8 flex flex-col-reverse sm:flex-row justify-between items-center gap-4">
-                                        <button type="button" onClick={prevStep} className="w-full sm:w-auto text-gray-400 hover:text-white py-3">Voltar</button>
+                                        {!editAppointmentId ? (
+                                            <button type="button" onClick={prevStep} className="w-full sm:w-auto text-gray-400 hover:text-white py-3">Voltar</button>
+                                        ) : <div className="hidden sm:block"></div>}
                                         <button
                                             onClick={handleSubmit}
                                             className="w-full sm:w-auto btn-primary font-bold uppercase tracking-wide px-12 py-3 shadow-[0_0_20px_rgba(212,175,55,0.3)] hover:shadow-[0_0_30px_rgba(212,175,55,0.5)] transform hover:-translate-y-1 transition-all flex justify-center"
                                         >
-                                            Confirmar
+                                            {editAppointmentId ? 'Confirmar Remarcação' : 'Confirmar'}
                                         </button>
                                     </div>
 
@@ -541,9 +602,11 @@ const Booking: React.FC = () => {
                                     <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-green-500/20 text-green-500 mb-6 border border-green-500/50 shadow-[0_0_30px_rgba(34,197,94,0.3)]">
                                         <Check className="w-10 h-10" />
                                     </div>
-                                    <h2 className="text-3xl font-heading font-bold text-white mb-4">Agendamento Confirmado!</h2>
+                                    <h2 className="text-3xl font-heading font-bold text-white mb-4">
+                                        {editAppointmentId ? 'Remarcação Confirmada!' : 'Agendamento Confirmado!'}
+                                    </h2>
                                     <p className="text-gray-300 mb-8 max-w-md mx-auto">
-                                        Obrigado, <span className="text-primary font-bold">{user?.user_metadata?.nome || 'Cliente'}</span>. O seu horário para <span className="text-white font-bold">{selectedService?.nome}</span> foi reservado com sucesso.
+                                        Obrigado, <span className="text-primary font-bold">{user?.user_metadata?.nome || 'Cliente'}</span>. O seu horário para <span className="text-white font-bold">{selectedService?.nome}</span> foi {editAppointmentId ? 'remarcado' : 'reservado'} com sucesso.
                                     </p>
                                     <button onClick={() => navigate('/')} className="btn-primary">
                                         Voltar para o Início

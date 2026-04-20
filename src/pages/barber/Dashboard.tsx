@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../utils/supabase';
-import { Calendar, Clock, User, Scissors, CheckCircle, AlertCircle, Loader } from 'lucide-react';
-
-import { motion } from 'framer-motion';
+import { Calendar as CalendarIcon, Scissors, CheckCircle, AlertCircle, X, Repeat, Loader } from 'lucide-react';
+import Calendar, { type CalendarEvent } from '../../components/Calendar';
+import { motion, AnimatePresence } from 'framer-motion';
 
 const BarberDashboard: React.FC = () => {
     const { user } = useAuth();
@@ -15,7 +15,16 @@ const BarberDashboard: React.FC = () => {
         completedCount: 0,
         totalRevenue: 0
     });
-    const [activeTab, setActiveTab] = useState<'upcoming' | 'history' | 'cancelled'>('upcoming');
+
+
+    // Calendar states
+    const [calendarView, setCalendarView] = useState<'month' | 'week' | 'day'>('week');
+    const [currentDate, setCurrentDate] = useState(new Date());
+
+    // Reschedule State
+    const [reschedulingApt, setReschedulingApt] = useState<any>(null);
+    const [newDate, setNewDate] = useState('');
+    const [newTime, setNewTime] = useState('');
 
     useEffect(() => {
         if (!user) return;
@@ -44,20 +53,35 @@ const BarberDashboard: React.FC = () => {
                 .select(`
                     *,
                     servico:servicos(nome, duracao, preco),
-                    cliente:perfis(nome, telemovel)
+                    cliente:perfis(nome, telemovel, email)
                 `)
                 .eq('barbeiro_id', barberData.id)
                 .order('data_hora', { ascending: true }); // Closest first
 
             if (error) throw error;
+            const now = new Date();
+            const apts = (data || []).map(item => {
+                let currentStatus = item.status === 'pendente' ? 'marcado' : item.status;
+                const aptDate = new Date(item.data_hora);
+                const endDate = new Date(aptDate.getTime() + (item.servico?.duracao || 30) * 60000);
 
-            const apts = data || [];
+                if ((currentStatus === 'marcado' || currentStatus === 'confirmado') && now > endDate) {
+                    currentStatus = 'concluido';
+                    supabase.from('Marcacoes').update({ status: 'concluido' }).eq('id', item.id).then();
+                } else if (item.status === 'pendente') {
+                    // Migrate legacy 'pendente' to 'marcado'
+                    supabase.from('Marcacoes').update({ status: 'marcado' }).eq('id', item.id).then();
+                }
+                
+                return { ...item, status: currentStatus };
+            });
+
             setAppointments(apts);
 
             // 3. Calculate Stats
             const today = new Date().toISOString().split('T')[0];
             const todayApts = apts.filter(a => a.data_hora.startsWith(today));
-            const pending = apts.filter(a => a.status === 'pendente');
+            const pending = apts.filter(a => a.status === 'marcado' || a.status === 'pendente');
             const completed = apts.filter(a => a.status === 'confirmado' || a.status === 'concluido'); // Assuming 'confirmado' roughly means confirmed/done contextually or user marks as done
 
             const revenue = completed.reduce((acc, curr) => {
@@ -103,11 +127,26 @@ const BarberDashboard: React.FC = () => {
     };
 
     const statCards = [
-        { title: 'Hoje', value: stats.todayCount, icon: Calendar, color: 'text-blue-400', bg: 'from-blue-500/20 to-blue-600/5', border: 'border-blue-500/20' },
-        { title: 'Pendentes', value: stats.pendingCount, icon: AlertCircle, color: 'text-amber-400', bg: 'from-amber-500/20 to-amber-600/5', border: 'border-amber-500/20' },
+        { title: 'Hoje', value: stats.todayCount, icon: CalendarIcon, color: 'text-blue-400', bg: 'from-blue-500/20 to-blue-600/5', border: 'border-blue-500/20' },
+        { title: 'Marcados', value: stats.pendingCount, icon: AlertCircle, color: 'text-yellow-400', bg: 'from-yellow-500/20 to-yellow-600/5', border: 'border-yellow-500/20' },
         { title: 'Confirmados', value: stats.completedCount, icon: CheckCircle, color: 'text-emerald-400', bg: 'from-emerald-500/20 to-emerald-600/5', border: 'border-emerald-500/20' },
         { title: 'Receita Est.', value: `${stats.totalRevenue}€`, icon: Scissors, color: 'text-purple-400', bg: 'from-purple-500/20 to-purple-600/5', border: 'border-purple-500/20' },
     ];
+
+    const calendarEvents: CalendarEvent[] = appointments.map(apt => ({
+        id: apt.id,
+        title: apt.cliente?.nome || 'Cliente',
+        subtitle: apt.servico?.nome || 'Serviço',
+        start: new Date(apt.data_hora),
+        end: new Date(new Date(apt.data_hora).getTime() + (apt.servico?.duracao || 30) * 60000),
+        status: apt.status,
+        clientDetails: {
+            name: apt.cliente?.nome || 'Cliente',
+            phone: apt.cliente?.telemovel,
+            email: apt.cliente?.email
+        },
+        rawAppointment: apt
+    }));
 
     const handleStatusUpdate = async (id: string, newStatus: string) => {
         if (!window.confirm(`Deseja alterar o status para "${newStatus}"?`)) return;
@@ -123,6 +162,73 @@ const BarberDashboard: React.FC = () => {
         } catch (error) {
             console.error('Error updating status:', error);
             alert('Erro ao atualizar status.');
+        }
+    };
+
+    const renderBarberActions = (event: CalendarEvent) => {
+        const apt = event.rawAppointment;
+        if (!apt) return null;
+
+        return (
+            <div className="flex flex-wrap gap-2">
+                {(apt.status === 'marcado' || apt.status === 'confirmado' || apt.status === 'pendente') && (
+                    <button
+                        onClick={() => {
+                            setReschedulingApt(apt);
+                        }}
+                        className="flex-1 min-w-[120px] py-2 bg-zinc-700/50 text-gray-300 rounded-lg hover:bg-zinc-600 transition-all font-bold flex items-center justify-center gap-2 border border-white/5"
+                    >
+                        <Repeat className="w-4 h-4" /> Reagendar
+                    </button>
+                )}
+                {(apt.status === 'marcado' || apt.status === 'pendente') && (
+                    <button
+                        onClick={() => handleStatusUpdate(apt.id, 'confirmado')}
+                        className="flex-1 min-w-[120px] py-2 bg-green-500/10 text-green-500 rounded-lg hover:bg-green-500/20 transition-all font-bold flex items-center justify-center gap-2 border border-green-500/20"
+                    >
+                        <CheckCircle className="w-4 h-4" /> Confirmar
+                    </button>
+                )}
+                {apt.status === 'confirmado' && (
+                    <button
+                        onClick={() => handleStatusUpdate(apt.id, 'concluido')}
+                        className="flex-1 min-w-[120px] py-2 bg-emerald-500/10 text-emerald-500 rounded-lg hover:bg-emerald-500/20 transition-all font-bold flex items-center justify-center gap-2 border border-emerald-500/20"
+                    >
+                        <CheckCircle className="w-4 h-4" /> Concluir
+                    </button>
+                )}
+                {(apt.status === 'marcado' || apt.status === 'pendente' || apt.status === 'confirmado') && (
+                    <button
+                        onClick={() => handleStatusUpdate(apt.id, 'cancelado')}
+                        className="flex-1 min-w-[120px] py-2 bg-red-500/10 text-red-500 rounded-lg hover:bg-red-500/20 transition-all font-bold flex items-center justify-center gap-2 border border-red-500/20"
+                    >
+                        <X className="w-4 h-4" /> Cancelar
+                    </button>
+                )}
+            </div>
+        );
+    };
+
+    const handleRescheduleSubmit = async () => {
+        if (!newDate || !newTime) return alert('Por favor, selecione a nova data e hora.');
+        const novaDataHora = `${newDate}T${newTime}:00`;
+        
+        try {
+            const { error } = await supabase
+                .from('Marcacoes')
+                .update({ data_hora: novaDataHora })
+                .eq('id', reschedulingApt.id);
+
+            if (error) throw error;
+            
+            fetchData();
+            setReschedulingApt(null);
+            setNewDate('');
+            setNewTime('');
+            alert('Marcação reagendada com sucesso!');
+        } catch (error) {
+            console.error('Erro ao reagendar:', error);
+            alert('Erro ao reagendar a marcação.');
         }
     };
 
@@ -171,119 +277,17 @@ const BarberDashboard: React.FC = () => {
                 <motion.div variants={item} className="lg:col-span-2 space-y-8">
                     <div className="bg-zinc-900/50 border border-white/5 rounded-2xl p-6 backdrop-blur-sm">
                         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
-                            <h2 className="text-xl font-bold text-white">Seus Agendamentos</h2>
-
-                            <div className="flex p-1 bg-black/40 rounded-lg border border-white/5">
-                                <button
-                                    onClick={() => setActiveTab('upcoming')}
-                                    className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${activeTab === 'upcoming' ? 'bg-zinc-800 text-white shadow-sm' : 'text-gray-400 hover:text-white'}`}
-                                >
-                                    Próximos
-                                </button>
-                                <button
-                                    onClick={() => setActiveTab('history')}
-                                    className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${activeTab === 'history' ? 'bg-zinc-800 text-white shadow-sm' : 'text-gray-400 hover:text-white'}`}
-                                >
-                                    Histórico
-                                </button>
-                                <button
-                                    onClick={() => setActiveTab('cancelled')}
-                                    className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${activeTab === 'cancelled' ? 'bg-zinc-800 text-white shadow-sm' : 'text-gray-400 hover:text-white'}`}
-                                >
-                                    Cancelados
-                                </button>
-                            </div>
+                            <h2 className="text-xl font-bold text-white">Calendário de Agendamentos</h2>
                         </div>
 
-                        {appointments.filter(apt => {
-                            if (activeTab === 'upcoming') return apt.status === 'pendente' || apt.status === 'confirmado';
-                            if (activeTab === 'history') return apt.status === 'concluido';
-                            if (activeTab === 'cancelled') return apt.status === 'cancelado';
-                            return true;
-                        }).length > 0 ? (
-                            <div className="space-y-3">
-                                {appointments
-                                    .filter(apt => {
-                                        if (activeTab === 'upcoming') return apt.status === 'pendente' || apt.status === 'confirmado';
-                                        if (activeTab === 'history') return apt.status === 'concluido';
-                                        if (activeTab === 'cancelled') return apt.status === 'cancelado';
-                                        return true;
-                                    })
-                                    .map((apt) => (
-                                        <div key={apt.id} className="flex flex-col md:flex-row items-start md:items-center justify-between p-4 rounded-xl bg-white/5 hover:bg-white/10 transition-colors border border-white/5 group gap-4">
-                                            <div className="flex items-center gap-4">
-                                                <div className="w-12 h-12 rounded-full bg-zinc-800 flex items-center justify-center text-gray-400 group-hover:text-primary transition-colors shrink-0">
-                                                    <User className="w-6 h-6" />
-                                                </div>
-                                                <div>
-                                                    <p className="font-bold text-white text-lg">
-                                                        {apt.cliente?.nome || 'Cliente Desconhecido'}
-                                                    </p>
-                                                    <div className="flex items-center gap-2 text-sm text-gray-400">
-                                                        <Scissors className="w-3 h-3" />
-                                                        {apt.servico?.nome}
-                                                        <span className="text-primary font-bold">({apt.servico?.preco}€)</span>
-                                                    </div>
-                                                </div>
-                                            </div>
-
-                                            <div className="flex flex-row md:flex-col items-center md:items-end gap-3 md:gap-1 w-full md:w-auto justify-between md:justify-end pl-16 md:pl-0">
-                                                <div className="flex items-center gap-2 text-gray-300">
-                                                    <Clock className="w-4 h-4 text-primary" />
-                                                    <span className="font-medium">
-                                                        {new Date(apt.data_hora).toLocaleDateString('pt-PT', { day: '2-digit', month: '2-digit' })}
-                                                        <span className="mx-1">•</span>
-                                                        {new Date(apt.data_hora).toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' })}
-                                                    </span>
-                                                </div>
-
-                                                <div className="flex items-center gap-2 mt-2">
-                                                    <span className={`px-2 py-0.5 rounded text-xs font-bold uppercase tracking-wider
-                                                    ${apt.status === 'confirmado' ? 'bg-green-500/20 text-green-400' :
-                                                            apt.status === 'pendente' ? 'bg-yellow-500/20 text-yellow-400' :
-                                                                apt.status === 'concluido' ? 'bg-blue-500/20 text-blue-400' : 'bg-red-500/20 text-red-400'
-                                                        }`}>
-                                                        {apt.status}
-                                                    </span>
-                                                </div>
-
-                                                {/* Action Buttons */}
-                                                <div className="flex gap-2 mt-2">
-                                                    {apt.status === 'pendente' && (
-                                                        <>
-                                                            <button
-                                                                onClick={() => handleStatusUpdate(apt.id, 'confirmado')}
-                                                                className="px-3 py-1 bg-green-500/10 text-green-400 text-xs rounded hover:bg-green-500/20 transition-colors font-bold border border-green-500/20"
-                                                            >
-                                                                Confirmar
-                                                            </button>
-                                                            <button
-                                                                onClick={() => handleStatusUpdate(apt.id, 'cancelado')}
-                                                                className="px-3 py-1 bg-red-500/10 text-red-400 text-xs rounded hover:bg-red-500/20 transition-colors font-bold border border-red-500/20"
-                                                            >
-                                                                Cancelar
-                                                            </button>
-                                                        </>
-                                                    )}
-                                                    {apt.status === 'confirmado' && (
-                                                        <button
-                                                            onClick={() => handleStatusUpdate(apt.id, 'concluido')}
-                                                            className="px-3 py-1 bg-blue-500/10 text-blue-400 text-xs rounded hover:bg-blue-500/20 transition-colors font-bold border border-blue-500/20"
-                                                        >
-                                                            Concluir
-                                                        </button>
-                                                    )}
-                                                </div>
-                                            </div>
-                                        </div>
-                                    ))}
-                            </div>
-                        ) : (
-                            <div className="text-center py-16 text-gray-500">
-                                <Calendar className="w-16 h-16 mx-auto mb-4 opacity-20" />
-                                <p className="text-lg">Sem agendamentos encontrados.</p>
-                            </div>
-                        )}
+                        <Calendar
+                            events={calendarEvents}
+                            view={calendarView}
+                            onViewChange={setCalendarView}
+                            currentDate={currentDate}
+                            onDateChange={setCurrentDate}
+                            renderActions={renderBarberActions}
+                        />
                     </div>
                 </motion.div>
 
@@ -305,6 +309,49 @@ const BarberDashboard: React.FC = () => {
                     </div>
                 </motion.div>
             </div>
+
+            {/* Reschedule Modal */}
+            <AnimatePresence>
+                {reschedulingApt && (
+                    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.95 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            exit={{ opacity: 0, scale: 0.95 }}
+                            className="bg-zinc-900 border border-white/10 rounded-2xl p-6 w-full max-w-sm shadow-2xl"
+                        >
+                            <h3 className="text-xl font-bold text-white mb-4">Reagendar Marcação</h3>
+                            <p className="text-sm text-gray-400 mb-6">Selecione a nova data e hora para a marcação de <span className="text-white font-bold">{reschedulingApt.cliente?.nome || 'Cliente'}</span>.</p>
+                            
+                            <div className="space-y-4 mb-6">
+                                <div>
+                                    <label className="block text-sm text-gray-400 mb-1">Nova Data</label>
+                                    <input 
+                                        type="date"
+                                        value={newDate}
+                                        onChange={(e) => setNewDate(e.target.value)}
+                                        className="w-full bg-black/40 border border-white/10 rounded-lg px-4 py-2 text-white outline-none focus:border-primary"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm text-gray-400 mb-1">Nova Hora</label>
+                                    <input 
+                                        type="time"
+                                        value={newTime}
+                                        onChange={(e) => setNewTime(e.target.value)}
+                                        className="w-full bg-black/40 border border-white/10 rounded-lg px-4 py-2 text-white outline-none focus:border-primary"
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="flex gap-3">
+                                <button onClick={() => setReschedulingApt(null)} className="flex-1 py-2 rounded-lg btn-outline">Cancelar</button>
+                                <button onClick={handleRescheduleSubmit} className="flex-1 py-2 rounded-lg btn-primary">Confirmar</button>
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
         </motion.div>
     );
 };

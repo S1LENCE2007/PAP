@@ -5,10 +5,11 @@ import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../utils/supabase';
 import {
     User, Clock, LogOut, Loader, X, Repeat,
-    Edit2, Save, Shield, Scissors, History, Mail, Phone, Lock, ShoppingBag, QrCode
+    Edit2, Save, Shield, Scissors, History, Mail, Phone, Lock, ShoppingBag, QrCode, Calendar as CalendarIcon
 } from 'lucide-react';
 import PageHeader from '../components/layout/PageHeader';
 import { clsx } from 'clsx';
+import { getGoogleCalendarUrl } from '../utils/calendar';
 
 interface Appointment {
     id: string;
@@ -73,38 +74,55 @@ const Profile: React.FC = () => {
                         id,
                         data_hora,
                         status,
-                        servicos (nome, preco, duracao),
-                        barbeiros (nome)
+                        barbeiro_id,
+                        servicos (id, nome, preco, duracao),
+                        barbeiros (id, nome)
                     `)
                     .eq('cliente_id', user.id)
                     .order('data_hora', { ascending: false });
 
                 if (error) throw error;
 
-                type SectionData = { nome: string; preco?: number; duracao?: number };
+                type SectionData = { id?: string; nome: string; preco?: number; duracao?: number };
 
                 interface AppointmentData {
                     id: string;
                     data_hora: string;
                     status: string;
+                    barbeiro_id: string;
                     servicos: SectionData | SectionData[];
                     barbeiros: SectionData | SectionData[];
                 }
-
+                const now = new Date();
                 const formattedData = (data as unknown as AppointmentData[]).map(item => {
                     const servicos = Array.isArray(item.servicos) ? item.servicos[0] : item.servicos;
                     const barbeiros = Array.isArray(item.barbeiros) ? item.barbeiros[0] : item.barbeiros;
 
+                    let currentStatus = item.status === 'pendente' ? 'marcado' : item.status;
+                    const aptDate = new Date(item.data_hora);
+                    const duracao = servicos && typeof servicos.duracao === 'number' ? servicos.duracao : 30;
+                    const endDate = new Date(aptDate.getTime() + (duracao * 60000));
+
+                    if ((currentStatus === 'marcado' || currentStatus === 'confirmado') && now > endDate) {
+                        currentStatus = 'concluido';
+                        supabase.from('Marcacoes').update({ status: 'concluido' }).eq('id', item.id).then();
+                    } else if (item.status === 'pendente') {
+                        supabase.from('Marcacoes').update({ status: 'marcado' }).eq('id', item.id).then();
+                    }
+
                     return {
                         ...item,
+                        status: currentStatus,
                         servicos: servicos ? {
+                            id: servicos.id,
                             nome: servicos.nome,
                             preco: servicos.preco || 0,
                             duracao: servicos.duracao || 0
-                        } : { nome: 'Serviço Removido', preco: 0, duracao: 0 },
+                        } : { id: '', nome: 'Serviço Removido', preco: 0, duracao: 0 },
                         barbeiros: barbeiros ? {
+                            id: barbeiros.id || item.barbeiro_id,
                             nome: barbeiros.nome
-                        } : { nome: 'Barbeiro Removido' }
+                        } : { id: item.barbeiro_id || '', nome: 'Barbeiro Removido' }
                     };
                 });
 
@@ -201,9 +219,17 @@ const Profile: React.FC = () => {
         }
     };
 
-    const handleReschedule = (apt: Appointment) => {
+    const handleReschedule = (apt: any) => {
         navigate('/agendar', {
-            state: { serviceName: apt.servicos.nome, barberName: apt.barbeiros.nome }
+            state: { 
+                serviceName: apt.servicos.nome, 
+                barberName: apt.barbeiros.nome, 
+                editAppointmentId: apt.id,
+                barberId: apt.barbeiros.id,
+                serviceId: apt.servicos.id,
+                serviceDuracao: apt.servicos.duracao,
+                servicePreco: apt.servicos.preco
+            }
         });
     };
 
@@ -215,10 +241,8 @@ const Profile: React.FC = () => {
         return new Date(dateString).toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' });
     };
 
-    const isUpcoming = (dateString: string) => new Date(dateString) > new Date();
-
-    const upcomingAppointments = appointments.filter(apt => isUpcoming(apt.data_hora) && apt.status !== 'cancelado');
-    const pastAppointments = appointments.filter(apt => !isUpcoming(apt.data_hora) || apt.status === 'cancelado');
+    const upcomingAppointments = appointments.filter(apt => apt.status === 'marcado' || apt.status === 'confirmado');
+    const pastAppointments = appointments.filter(apt => apt.status === 'concluido' || apt.status === 'cancelado');
 
     const displayAppointments = activeTab === 'upcoming' ? upcomingAppointments : pastAppointments;
 
@@ -536,16 +560,30 @@ const Profile: React.FC = () => {
                                                         </span>
                                                         <span className={clsx(
                                                             "px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide border",
-                                                            apt.status === 'confirmado' ? "bg-green-500/10 text-green-500 border-green-500/20" :
-                                                                apt.status === 'pendente' ? "bg-yellow-500/10 text-yellow-500 border-yellow-500/20" :
-                                                                    "bg-red-500/10 text-red-500 border-red-500/20"
+                                                            apt.status === 'confirmado' ? "bg-blue-500/10 text-blue-500 border-blue-500/20" :
+                                                                apt.status === 'marcado' ? "bg-yellow-500/10 text-yellow-500 border-yellow-500/20" :
+                                                                    apt.status === 'concluido' ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/20" :
+                                                                        "bg-red-500/10 text-red-500 border-red-500/20"
                                                         )}>
                                                             {apt.status}
                                                         </span>
                                                     </div>
 
-                                                    {activeTab === 'upcoming' && (apt.status === 'pendente' || apt.status === 'confirmado') && (
+                                                    {activeTab === 'upcoming' && (apt.status === 'marcado' || apt.status === 'confirmado') && (
                                                         <div className="flex items-center gap-2 mt-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                            <a
+                                                                href={getGoogleCalendarUrl(
+                                                                    `Corte - ${apt.servicos?.nome}`, 
+                                                                    apt.data_hora, 
+                                                                    apt.servicos?.duracao || 60
+                                                                )}
+                                                                target="_blank"
+                                                                rel="noopener noreferrer"
+                                                                className="p-2 hover:bg-blue-500/10 rounded-lg text-blue-500/70 hover:text-blue-500 transition-colors"
+                                                                title="Adicionar ao Google Calendar"
+                                                            >
+                                                                <CalendarIcon className="w-4 h-4" />
+                                                            </a>
                                                             <button
                                                                 onClick={() => handleReschedule(apt)}
                                                                 className="p-2 hover:bg-gray-700/50 rounded-lg text-gray-400 hover:text-white transition-colors"

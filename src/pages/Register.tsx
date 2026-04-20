@@ -26,6 +26,12 @@ const Register: React.FC = () => {
         setLoading(true);
         setError(null);
 
+        if (!formData.name.trim() || !formData.email.trim() || !formData.phone.trim()) {
+            setError('Todos os campos (Nome, Telemóvel e Email) são obrigatórios');
+            setLoading(false);
+            return;
+        }
+
         if (formData.password !== formData.confirmPassword) {
             setError('As palavras-passe não coincidem');
             setLoading(false);
@@ -135,7 +141,7 @@ const Register: React.FC = () => {
 
                 <form onSubmit={handleRegister} className="space-y-5">
                     <div>
-                        <label className="block text-sm font-medium text-gray-400 mb-1">Nome Completo</label>
+                        <label className="block text-sm font-medium text-gray-400 mb-1">Nome Completo <span className="text-red-500">*</span></label>
                         <div className="relative">
                             <User className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-500 w-5 h-5" />
                             <input
@@ -151,7 +157,7 @@ const Register: React.FC = () => {
                     </div>
 
                     <div>
-                        <label className="block text-sm font-medium text-gray-400 mb-1">Telemóvel</label>
+                        <label className="block text-sm font-medium text-gray-400 mb-1">Telemóvel <span className="text-red-500">*</span></label>
                         <div className="relative">
                             <Phone className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-500 w-5 h-5" />
                             <input
@@ -167,7 +173,7 @@ const Register: React.FC = () => {
                     </div>
 
                     <div>
-                        <label className="block text-sm font-medium text-gray-400 mb-1">Email</label>
+                        <label className="block text-sm font-medium text-gray-400 mb-1">Email <span className="text-red-500">*</span></label>
                         <div className="relative">
                             <Mail className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-500 w-5 h-5" />
                             <input
