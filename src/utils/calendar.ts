@@ -9,7 +9,7 @@ export const getGoogleCalendarUrl = (title: string, startDate: string | Date, du
         action: 'TEMPLATE',
         text: title,
         dates: `${formatStr(start)}/${formatStr(end)}`,
-        details: 'Agendamento confirmado. Pode gerir as suas marcações no nosso website.',
+        details: 'Marcação confirmado. Pode gerir as suas marcações no nosso website.',
         location: location,
     });
     

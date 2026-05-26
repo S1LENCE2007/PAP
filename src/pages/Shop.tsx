@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { ShoppingBag, Search, Filter, ShoppingCart, Plus, Loader } from 'lucide-react';
 import { supabase } from '../utils/supabase';
 import { useCart, type Product } from '../contexts/CartContext';
+import shopBannerImage from '../imagens/b_shop.jpg';
 
 import PageHeader from '../components/layout/PageHeader';
 
@@ -47,7 +48,7 @@ const Shop: React.FC = () => {
             <PageHeader
                 title={<>LOJA <span className="text-primary">EXCLUSIVA</span></>}
                 subtitle="Produtos selecionados pelos nossos barbeiros para manter o seu estilo impecável."
-                backgroundImage="https://images.unsplash.com/photo-1626285861696-9f0bf5a49c6d?auto=format&fit=crop&q=80&w=2070"
+                backgroundImage={shopBannerImage}
             />
 
             <div className="max-w-7xl mx-auto px-4 py-16">

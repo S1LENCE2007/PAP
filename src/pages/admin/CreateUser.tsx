@@ -5,7 +5,7 @@ import { User, Mail, Lock, Check, ArrowLeft, Loader, Shield, Sparkles, Eye, EyeO
 import { supabase } from '../../utils/supabase';
 import ImageUpload from '../../components/ui/ImageUpload';
 
-const CreateBarber: React.FC = () => {
+const CreateUser: React.FC = () => {
     const navigate = useNavigate();
     const [loading, setLoading] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
@@ -16,7 +16,8 @@ const CreateBarber: React.FC = () => {
         email: '',
         password: '',
         confirmPassword: '',
-        disponivel: true
+        disponivel: true,
+        role: 'barbeiro'
     });
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -42,13 +43,13 @@ const CreateBarber: React.FC = () => {
                 p_nome: formData.nome,
                 p_bio: formData.bio,
                 p_foto_url: formData.foto_url,
-                p_role: 'barbeiro' // Explicitly setting the role
+                p_role: formData.role // Explicitly setting the role based on selection
             });
 
             if (error) throw error;
 
             // Success animation or redirect
-            alert('Barbeiro criado com sucesso!');
+            alert('Utilizador criado com sucesso!');
             navigate('/admin/gerenciar');
 
         } catch (error: any) {
@@ -87,9 +88,9 @@ const CreateBarber: React.FC = () => {
                             initial={{ opacity: 0, y: 20 }}
                             animate={{ opacity: 1, y: 0 }}
                         >
-                            <h1 className="text-4xl font-heading font-bold text-white mb-2">Novo <span className="text-primary">Profissional</span></h1>
+                            <h1 className="text-4xl font-heading font-bold text-white mb-2">Novo <span className="text-primary">Utilizador</span></h1>
                             <p className="text-gray-400 leading-relaxed">
-                                Adicione um novo talento à equipa Barberia Dourado.
+                                Adicione um novo utilizador ao sistema.
                                 Esta ação criará automaticamente uma conta de acesso e um perfil público.
                             </p>
                         </motion.div>
@@ -133,7 +134,7 @@ const CreateBarber: React.FC = () => {
 
                                 <div className="grid grid-cols-1 gap-6">
                                     <div className="space-y-2">
-                                        <label className="text-xs font-bold text-primary uppercase tracking-wider ml-1">Nome do Profissional</label>
+                                        <label className="text-xs font-bold text-primary uppercase tracking-wider ml-1">Nome do Utilizador</label>
                                         <div className="relative">
                                             <User className="w-5 h-5 absolute left-4 top-3.5 text-gray-500" />
                                             <input
@@ -216,7 +217,20 @@ const CreateBarber: React.FC = () => {
 
 
                                     <div className="space-y-2">
-                                        <label className="text-xs font-bold text-primary uppercase tracking-wider ml-1">Biografia</label>
+                                        <label className="text-xs font-bold text-primary uppercase tracking-wider ml-1">Tipo de Utilizador (Role)</label>
+                                        <select
+                                            value={formData.role}
+                                            onChange={e => setFormData({ ...formData, role: e.target.value })}
+                                            className="w-full bg-black/40 border border-gray-700 rounded-xl py-3 px-4 text-white focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none transition-all"
+                                        >
+                                            <option value="client">Cliente</option>
+                                            <option value="barbeiro">Barbeiro</option>
+                                            <option value="admin">Administrador</option>
+                                        </select>
+                                    </div>
+
+                                    <div className="space-y-2">
+                                        <label className="text-xs font-bold text-primary uppercase tracking-wider ml-1">Biografia (Opcional)</label>
                                         <textarea
                                             value={formData.bio}
                                             onChange={e => setFormData({ ...formData, bio: e.target.value })}
@@ -232,7 +246,7 @@ const CreateBarber: React.FC = () => {
                                     className="w-full btn-primary py-4 rounded-xl font-bold text-lg flex items-center justify-center gap-2 mt-4 hover:scale-[1.02] active:scale-[0.98] transition-all shadow-lg shadow-primary/20"
                                 >
                                     {loading ? <Loader className="w-6 h-6 animate-spin" /> : <Check className="w-6 h-6" />}
-                                    Criar Conta de Profissional
+                                    Criar Conta
                                 </button>
                             </div>
                         </form>
@@ -243,4 +257,4 @@ const CreateBarber: React.FC = () => {
     );
 };
 
-export default CreateBarber;
+export default CreateUser;

@@ -45,7 +45,7 @@ const AdminLayout: React.FC = () => {
 
     const navItems = [
         { name: 'Dashboard', path: '/admin', icon: LayoutDashboard },
-        { name: 'Agendamentos', path: '/admin/agendamentos', icon: Calendar },
+        { name: 'Marcações', path: '/admin/marcações', icon: Calendar },
         { name: 'Gestão', path: '/admin/gerenciar', icon: Users },
         { name: 'Produtos', path: '/admin/produtos', icon: ShoppingBag },
         { name: 'Galeria', path: '/admin/galeria', icon: Image },

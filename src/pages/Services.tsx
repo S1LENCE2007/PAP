@@ -5,33 +5,53 @@ import { Check } from 'lucide-react';
 
 import PageHeader from '../components/layout/PageHeader';
 
+import { supabase } from '../utils/supabase';
+
 const Services: React.FC = () => {
-    const categories = [
-        {
-            title: "Cabelo",
-            items: [
-                { name: 'Corte Clássico', price: '15€', description: 'Corte tradicional com tesoura e máquina, lavagem e finalização.' },
-                { name: 'Corte Degradê', price: '18€', description: 'Fade perfeito com navalha e acabamento premium.' },
-                { name: 'Corte Infantil', price: '12€', description: 'Para os pequenos cavalheiros (até 12 anos).' },
-                { name: 'Camuflagem de Brancos', price: '20€', description: 'Tintura sutil para um visual natural e rejuvenescido.' }
-            ]
-        },
-        {
-            title: "Barba",
-            items: [
-                { name: 'Barba Tradicional', price: '12€', description: 'Modelagem com toalha quente e navalha.' },
-                { name: 'Barboterapia', price: '20€', description: 'Tratamento completo com esfoliação e hidratação profunda.' },
-                { name: 'Acabamento', price: '8€', description: 'Limpeza do pescoço e contornos.' }
-            ]
-        },
-        {
-            title: "Combos",
-            items: [
-                { name: 'Corte + Barba', price: '25€', description: 'O pacote essencial para o homem moderno.' },
-                { name: 'Experiência Dourado', price: '45€', description: 'Corte, barboterapia, sobrancelha e bebida cortesia.' }
-            ]
-        }
-    ];
+    const [categories, setCategories] = React.useState<{ title: string, items: any[] }[]>([]);
+    const [loading, setLoading] = React.useState(true);
+
+    React.useEffect(() => {
+        const fetchServices = async () => {
+            try {
+                const { data, error } = await supabase
+                    .from('servicos')
+                    .select('*')
+                    .eq('disponivel', true)
+                    .order('preco');
+
+                if (error) throw error;
+
+                if (data) {
+                    const grouped = data.reduce((acc, curr) => {
+                        const cat = curr.categoria || 'cabelo';
+                        if (!acc[cat]) acc[cat] = [];
+                        acc[cat].push({
+                            name: curr.nome,
+                            price: `${curr.preco}€`,
+                            description: curr.descricao || '',
+                            imagem_url: curr.imagem_url
+                        });
+                        return acc;
+                    }, {} as Record<string, any[]>);
+
+                    const formatted = [
+                        { title: 'Cabelo', items: grouped['cabelo'] || [] },
+                        { title: 'Barba', items: grouped['barba'] || [] },
+                        { title: 'Combos', items: grouped['combo'] || [] },
+                    ].filter(cat => cat.items.length > 0);
+
+                    setCategories(formatted);
+                }
+            } catch (error) {
+                console.error('Erro ao buscar serviços:', error);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchServices();
+    }, []);
 
     return (
         <div className="min-h-screen bg-dark-bg text-white">
@@ -64,15 +84,26 @@ const Services: React.FC = () => {
                             {category.items.map((service, index) => (
                                 <div
                                     key={index}
-                                    className="bg-card-bg p-8 rounded-2xl border border-white/5 hover:border-primary/30 transition-all duration-300 group hover:-translate-y-1 shadow-lg hover:shadow-primary/5"
+                                    className="bg-card-bg p-8 rounded-2xl border border-white/5 hover:border-primary/30 transition-all duration-300 group hover:-translate-y-1 shadow-lg hover:shadow-primary/5 flex flex-col"
                                 >
+                                    {service.imagem_url && (
+                                        <div className="w-full h-48 rounded-xl overflow-hidden mb-6 bg-black/40 relative">
+                                            <img 
+                                                src={service.imagem_url} 
+                                                alt={service.name} 
+                                                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" 
+                                            />
+                                        </div>
+                                    )}
                                     <div className="flex justify-between items-start mb-4">
                                         <h3 className="text-xl font-bold text-white group-hover:text-primary transition-colors">
                                             {service.name}
                                         </h3>
-                                        <span className="text-xl font-bold text-primary bg-primary/10 px-3 py-1 rounded-lg">{service.price}</span>
+                                        <span className="text-xl font-bold text-primary bg-primary/10 px-3 py-1 rounded-lg shrink-0 ml-4">{service.price}</span>
                                     </div>
-                                    <p className="text-gray-400 text-sm mb-6 leading-relaxed border-b border-white/5 pb-4">{service.description}</p>
+                                    {service.description && (
+                                        <p className="text-gray-400 text-sm mb-6 leading-relaxed border-b border-white/5 pb-4">{service.description}</p>
+                                    )}
                                     <Link
                                         to="/agendar"
                                         state={{ serviceName: service.name }}

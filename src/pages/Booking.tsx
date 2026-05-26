@@ -30,6 +30,7 @@ const Booking: React.FC = () => {
         nome: string;
         preco: number;
         duracao: number;
+        imagem_url?: string;
     }
 
     const [barbers, setBarbers] = useState<Barber[]>([]);
@@ -211,7 +212,7 @@ const Booking: React.FC = () => {
             setStep(5);
         } catch (error) {
             console.error('Erro ao agendar:', error);
-            alert('Ocorreu um erro ao realizar o agendamento. Por favor, tente novamente.');
+            alert('Ocorreu um erro ao realizar o marcação. Por favor, tente novamente.');
         } finally {
             setIsSubmitting(false);
         }
@@ -349,32 +350,54 @@ const Booking: React.FC = () => {
                                                 key={service.id}
                                                 onClick={() => setSelectedService(service)}
                                                 className={clsx(
-                                                    "group relative overflow-hidden p-6 rounded-xl border text-left transition-all duration-300 hover:-translate-y-1 hover:shadow-lg",
+                                                    "group relative flex flex-col overflow-hidden rounded-xl border text-left transition-all duration-300 hover:-translate-y-1 hover:shadow-lg",
                                                     selectedService?.id === service.id
                                                         ? "border-primary bg-primary/10 shadow-[0_0_20px_rgba(212,175,55,0.1)]"
                                                         : "border-gray-800 bg-card-bg hover:border-gray-600"
                                                 )}
                                             >
-                                                <div className="flex justify-between items-start mb-2">
-                                                    <div className={clsx(
-                                                        "p-3 rounded-lg transition-colors",
-                                                        selectedService?.id === service.id ? "bg-primary text-black" : "bg-dark-bg text-gray-400 group-hover:text-primary"
-                                                    )}>
-                                                        <Scissors className="w-6 h-6" />
+                                                {service.imagem_url ? (
+                                                    <div className="w-full h-32 overflow-hidden rounded-t-xl bg-black/40 relative">
+                                                        <img src={service.imagem_url} alt={service.nome} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
+                                                        <div className="absolute top-3 right-3 bg-black/70 px-2 py-1 rounded-lg backdrop-blur-sm border border-white/10 z-10">
+                                                            <span className={clsx(
+                                                                "text-sm font-bold",
+                                                                selectedService?.id === service.id ? "text-primary" : "text-white"
+                                                            )}>{service.preco}€</span>
+                                                        </div>
+                                                        {selectedService?.id === service.id && (
+                                                            <div className="absolute top-3 left-3 bg-primary text-black p-1 rounded-full z-20 shadow-md">
+                                                                <Check className="w-4 h-4" />
+                                                            </div>
+                                                        )}
                                                     </div>
-                                                    <span className={clsx(
-                                                        "text-xl font-bold transition-colors",
-                                                        selectedService?.id === service.id ? "text-primary" : "text-white"
-                                                    )}>{service.preco}€</span>
-                                                </div>
-                                                <h3 className="font-bold text-lg text-white mb-1 group-hover:text-primary transition-colors">{service.nome}</h3>
-                                                <div className="flex items-center text-sm text-gray-400">
-                                                    <Clock className="w-4 h-4 mr-1" />
-                                                    {service.duracao} min
+                                                ) : (
+                                                    <div className="p-6 pb-2 flex justify-between items-start">
+                                                        <div className={clsx(
+                                                            "p-3 rounded-lg transition-colors",
+                                                            selectedService?.id === service.id ? "bg-primary text-black" : "bg-dark-bg text-gray-400 group-hover:text-primary"
+                                                        )}>
+                                                            <Scissors className="w-6 h-6" />
+                                                        </div>
+                                                        <span className={clsx(
+                                                            "text-xl font-bold transition-colors",
+                                                            selectedService?.id === service.id ? "text-primary" : "text-white"
+                                                        )}>{service.preco}€</span>
+                                                    </div>
+                                                )}
+                                                <div className={clsx(
+                                                    "flex-1 flex flex-col justify-end",
+                                                    service.imagem_url ? "p-4 pt-3" : "p-6 pt-4"
+                                                )}>
+                                                    <h3 className="font-bold text-lg text-white mb-1 group-hover:text-primary transition-colors">{service.nome}</h3>
+                                                    <div className="flex items-center text-sm text-gray-400">
+                                                        <Clock className="w-4 h-4 mr-1" />
+                                                        {service.duracao} min
+                                                    </div>
                                                 </div>
 
-                                                {selectedService?.id === service.id && (
-                                                    <div className="absolute top-2 right-2 text-primary">
+                                                {!service.imagem_url && selectedService?.id === service.id && (
+                                                    <div className="absolute top-2 right-2 text-primary z-20">
                                                         <Check className="w-5 h-5" />
                                                     </div>
                                                 )}
@@ -519,7 +542,7 @@ const Booking: React.FC = () => {
 
                                     <div className="text-center mb-6">
                                         <p className="text-gray-400">
-                                            O agendamento será realizado em nome de:<br />
+                                            O marcação será realizado em nome de:<br />
                                             <span className="text-white font-bold text-lg block mt-1">{user?.user_metadata?.nome || user?.email}</span>
                                         </p>
                                     </div>
@@ -532,7 +555,7 @@ const Booking: React.FC = () => {
                                         <div className="text-center mb-6">
                                             <h3 className="font-heading font-bold text-xl text-primary tracking-widest uppercase">Barbearia Dourado</h3>
                                             <p className="text-xs text-gray-500 uppercase tracking-wide">
-                                                {editAppointmentId ? 'Comprovativo de Remarcação' : 'Comprovativo de Pré-Agendamento'}
+                                                {editAppointmentId ? 'Comprovativo de Remarcação' : 'Comprovativo de Pré-Marcação'}
                                             </p>
                                         </div>
 
@@ -582,7 +605,7 @@ const Booking: React.FC = () => {
                                         <div className="absolute inset-0 bg-dark/80 backdrop-blur-sm rounded-2xl flex items-center justify-center z-50">
                                             <div className="flex flex-col items-center">
                                                 <Loader className="w-10 h-10 text-primary animate-spin mb-4" />
-                                                <p className="text-white font-bold">Processando agendamento...</p>
+                                                <p className="text-white font-bold">Processando marcação...</p>
                                             </div>
                                         </div>
                                     )}
@@ -603,7 +626,7 @@ const Booking: React.FC = () => {
                                         <Check className="w-10 h-10" />
                                     </div>
                                     <h2 className="text-3xl font-heading font-bold text-white mb-4">
-                                        {editAppointmentId ? 'Remarcação Confirmada!' : 'Agendamento Confirmado!'}
+                                        {editAppointmentId ? 'Remarcação Confirmada!' : 'Marcação Confirmado!'}
                                     </h2>
                                     <p className="text-gray-300 mb-8 max-w-md mx-auto">
                                         Obrigado, <span className="text-primary font-bold">{user?.user_metadata?.nome || 'Cliente'}</span>. O seu horário para <span className="text-white font-bold">{selectedService?.nome}</span> foi {editAppointmentId ? 'remarcado' : 'reservado'} com sucesso.

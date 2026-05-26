@@ -34,9 +34,14 @@ interface CalendarProps {
     currentDate: Date;
     onDateChange: (date: Date) => void;
     renderActions?: (event: CalendarEvent) => React.ReactNode;
+    selectionMode?: boolean;
+    selectedDates?: Date[];
+    onDaySelect?: (date: Date) => void;
+    blockedDays?: Date[];
+    onUnblockDay?: (date: Date) => void;
 }
 
-const Calendar: React.FC<CalendarProps> = ({ events, view, onViewChange, currentDate, onDateChange, renderActions }) => {
+const Calendar: React.FC<CalendarProps> = ({ events, view, onViewChange, currentDate, onDateChange, renderActions, selectionMode = false, selectedDates = [], onDaySelect, blockedDays = [], onUnblockDay }) => {
     const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
     const [currentTime, setCurrentTime] = useState(new Date());
 
@@ -64,7 +69,7 @@ const Calendar: React.FC<CalendarProps> = ({ events, view, onViewChange, current
     const getStatusStyle = (status: string) => {
         switch (status) {
             case 'confirmado': return 'bg-blue-500/20 text-blue-400 border-blue-500/30';
-            case 'marcado': 
+            case 'marcado':
             case 'pendente': return 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30';
             case 'cancelado': return 'bg-red-500/20 text-red-500 border-red-500/30 line-through opacity-70';
             case 'concluido': return 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30';
@@ -77,27 +82,27 @@ const Calendar: React.FC<CalendarProps> = ({ events, view, onViewChange, current
         return (
             <div className="flex flex-col sm:flex-row justify-between items-center mb-6 gap-4">
                 <div className="flex items-center gap-4">
-                    <button onClick={today} className="px-4 py-2 bg-zin-900 hover:bg-zinc-800 rounded-lg text-sm font-medium transition-colors border border-white/10 text-white">Hoje</button>
+                    <button onClick={today} className="px-5 py-2 bg-card-bg hover:bg-white/10 rounded-xl text-sm font-bold transition-all duration-300 border border-white/5 hover:border-primary/30 text-white shadow-lg">Hoje</button>
                     <div className="flex gap-2">
-                        <button onClick={prev} className="p-2 bg-zinc-900 hover:bg-zinc-800 rounded-lg transition-colors border border-white/10 text-white">
+                        <button onClick={prev} className="p-2 bg-card-bg hover:bg-white/10 rounded-xl transition-all duration-300 border border-white/5 hover:border-primary/30 text-white shadow-lg">
                             <ChevronLeft className="w-5 h-5" />
                         </button>
-                        <button onClick={next} className="p-2 bg-zinc-900 hover:bg-zinc-800 rounded-lg transition-colors border border-white/10 text-white">
+                        <button onClick={next} className="p-2 bg-card-bg hover:bg-white/10 rounded-xl transition-all duration-300 border border-white/5 hover:border-primary/30 text-white shadow-lg">
                             <ChevronRight className="w-5 h-5" />
                         </button>
                     </div>
-                    <h2 className="text-xl font-bold text-white capitalize min-w-[200px] text-center sm:text-left">
+                    <h2 className="text-2xl font-heading font-bold text-transparent bg-clip-text bg-gradient-to-r from-primary to-secondary capitalize min-w-[200px] text-center sm:text-left drop-shadow-md">
                         {format(currentDate, dateFormat, { locale: pt })}
                     </h2>
                 </div>
-                <div className="flex p-1 bg-zinc-900/80 rounded-lg border border-white/10">
+                <div className="flex p-1.5 bg-card-bg/80 backdrop-blur-md rounded-xl border border-white/5 shadow-lg">
                     {(['month', 'week', 'day'] as ViewMode[]).map((v) => (
                         <button
                             key={v}
                             onClick={() => onViewChange(v)}
                             className={cn(
-                                "px-4 py-2 rounded-md text-sm font-medium transition-all capitalize",
-                                view === v ? "bg-zinc-800 text-white shadow-sm" : "text-gray-400 hover:text-white"
+                                "px-5 py-2 rounded-lg text-sm font-bold transition-all duration-300 capitalize",
+                                view === v ? "bg-gradient-to-r from-primary to-secondary text-dark shadow-md shadow-primary/20 scale-105" : "text-gray-400 hover:text-white hover:bg-white/5"
                             )}
                         >
                             {v === 'month' ? 'Mês' : v === 'week' ? 'Semana' : 'Dia'}
@@ -135,41 +140,68 @@ const Calendar: React.FC<CalendarProps> = ({ events, view, onViewChange, current
                 formattedDate = format(day, dateFormat);
                 const cloneDay = day;
 
-                const dayEvents = events.filter(e => isSameDay(e.start, cloneDay)).sort((a,b) => a.start.getTime() - b.start.getTime());
+                const dayEvents = events.filter(e => isSameDay(e.start, cloneDay)).sort((a, b) => a.start.getTime() - b.start.getTime());
+
+                const isSelected = selectedDates.some(d => isSameDay(d, cloneDay));
+                const isBlocked = blockedDays.some(d => isSameDay(d, cloneDay));
 
                 days.push(
                     <div
                         className={cn(
-                            "min-h-[120px] p-2 border-r border-b border-white/5 transition-colors relative flex flex-col group",
-                            !isSameMonth(day, monthStart) ? "bg-black/40 text-gray-600" : "bg-zinc-900/30 text-gray-300 hover:bg-zinc-800/50",
-                            isSameDay(day, new Date()) ? "bg-primary/5" : ""
+                            "min-h-[130px] p-2 border-r border-b border-white/5 transition-all duration-300 relative flex flex-col group",
+                            !isSameMonth(day, monthStart) ? "bg-dark-bg/60 text-gray-600" : "bg-card-bg/40 text-gray-300 hover:bg-white/[0.03]",
+                            isSameDay(day, new Date()) && !isSelected ? "bg-primary/5 ring-1 ring-inset ring-primary/20" : "",
+                            selectionMode ? "cursor-pointer hover:bg-primary/10" : "",
+                            isSelected ? "bg-primary/20 border-primary/50" : "",
+                            isBlocked ? "bg-red-950/20" : ""
                         )}
+                        onClick={() => {
+                            if (selectionMode && onDaySelect) {
+                                onDaySelect(cloneDay);
+                            }
+                        }}
                         key={day.toString()}
                     >
                         <div className="flex justify-between items-start mb-2">
                             <span className={cn(
-                                "text-sm font-bold w-8 h-8 flex items-center justify-center rounded-full transition-colors",
-                                isSameDay(day, new Date()) ? "bg-primary text-black shadow-lg shadow-primary/20" : "group-hover:text-white"
+                                "text-sm font-bold w-8 h-8 flex items-center justify-center rounded-full transition-all duration-300",
+                                isSelected ? "bg-primary text-dark shadow-lg shadow-primary/40 scale-110" :
+                                    isSameDay(day, new Date()) ? "bg-gradient-to-br from-primary to-secondary text-dark shadow-lg shadow-primary/30" : "group-hover:text-primary group-hover:bg-primary/10"
                             )}>
                                 {formattedDate}
                             </span>
-                        </div>
-                        <div className="flex flex-col gap-1.5 overflow-y-auto flex-1 scrollbar-hide pr-1">
-                            {dayEvents.slice(0, 3).map((evt) => (
-                                <div 
-                                    key={evt.id} 
-                                    onClick={() => setSelectedEvent(evt)}
-                                    className={cn("text-[11px] px-2 py-1 rounded-md truncate border backdrop-blur-sm transition-all hover:scale-[1.02] cursor-pointer", getStatusStyle(evt.status))} 
-                                    title={`${evt.title} - ${evt.subtitle || ''}`}
+                            {isBlocked && onUnblockDay && (
+                                <button
+                                    onClick={(e) => { e.stopPropagation(); onUnblockDay(cloneDay); }}
+                                    className="p-1 text-red-500 hover:text-white hover:bg-red-500 rounded transition-colors"
+                                    title="Desbloquear Dia"
                                 >
-                                    <span className="font-bold opacity-80 mr-1">{format(evt.start, 'HH:mm')}</span>
-                                    {evt.title}
-                                </div>
-                            ))}
-                            {dayEvents.length > 3 && (
-                                <div className="text-[11px] text-gray-400 font-medium pl-2 bg-white/5 rounded-md py-1 text-center hover:bg-white/10 transition-colors">+{dayEvents.length - 3} mais</div>
+                                    <X className="w-3 h-3" />
+                                </button>
                             )}
                         </div>
+                        {isBlocked ? (
+                            <div className="flex-1 flex items-center justify-center">
+                                <span className="text-[10px] font-bold text-red-500/50 uppercase tracking-widest rotate-[-15deg]">Bloqueado</span>
+                            </div>
+                        ) : (
+                            <div className="flex flex-col gap-1.5 overflow-y-auto flex-1 scrollbar-hide pr-1">
+                                {dayEvents.slice(0, 3).map((evt) => (
+                                    <div
+                                        key={evt.id}
+                                        onClick={() => setSelectedEvent(evt)}
+                                        className={cn("text-[11px] px-2 py-1.5 rounded-lg truncate border backdrop-blur-md transition-all duration-300 hover:-translate-y-0.5 cursor-pointer shadow-sm hover:shadow-md", getStatusStyle(evt.status))}
+                                        title={`${evt.title} - ${evt.subtitle || ''}`}
+                                    >
+                                        <span className="font-bold opacity-80 mr-1">{format(evt.start, 'HH:mm')}</span>
+                                        {evt.title}
+                                    </div>
+                                ))}
+                                {dayEvents.length > 3 && (
+                                    <div className="text-[11px] text-gray-400 font-medium pl-2 bg-white/5 rounded-md py-1 text-center hover:bg-white/10 transition-colors">+{dayEvents.length - 3} mais</div>
+                                )}
+                            </div>
+                        )}
                     </div>
                 );
                 day = addDays(day, 1);
@@ -183,8 +215,8 @@ const Calendar: React.FC<CalendarProps> = ({ events, view, onViewChange, current
         }
 
         return (
-            <div className="bg-zinc-900/50 border border-white/10 rounded-2xl flex flex-col backdrop-blur-sm overflow-hidden shadow-xl">
-                <div className="grid grid-cols-7 bg-black/60 border-b border-white/10">
+            <div className="bg-card-bg/60 border border-white/5 rounded-2xl flex flex-col backdrop-blur-xl overflow-hidden shadow-2xl shadow-black/50">
+                <div className="grid grid-cols-7 bg-dark-bg/80 border-b border-white/5">
                     {weekDays}
                 </div>
                 <div className="flex flex-col border-l border-t border-white/5">
@@ -195,8 +227,8 @@ const Calendar: React.FC<CalendarProps> = ({ events, view, onViewChange, current
     };
 
     const renderTimeGrid = (daysToRender: Date[]) => {
-        const START_HOUR = 8;
-        const END_HOUR = 21;
+        const START_HOUR = 9;
+        const END_HOUR = 18;
         const hours = Array.from({ length: END_HOUR - START_HOUR + 1 }, (_, i) => i + START_HOUR);
 
         const currentHourOffset = getHours(currentTime) + getMinutes(currentTime) / 60 - START_HOUR;
@@ -204,90 +236,135 @@ const Calendar: React.FC<CalendarProps> = ({ events, view, onViewChange, current
         const showCurrentTimeLine = currentHourOffset >= -0.5 && currentHourOffset <= (END_HOUR - START_HOUR + 1);
 
         return (
-            <div className="bg-zinc-900/50 border border-white/10 rounded-2xl flex flex-col h-[700px] backdrop-blur-sm shadow-xl overflow-hidden">
-                <div className="flex border-b border-white/10 bg-black/60 shrink-0">
-                    <div className="w-20 shrink-0 border-r border-white/10"></div>
-                    {daysToRender.map((day, i) => (
-                        <div key={i} className="flex-1 text-center py-4 border-r border-white/10 last:border-r-0">
-                            <div className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">{format(day, 'EEE', { locale: pt })}</div>
-                            <div className={cn(
-                                "text-xl font-bold mx-auto w-10 h-10 flex items-center justify-center rounded-full transition-colors",
-                                isSameDay(day, new Date()) ? "bg-primary text-black shadow-lg shadow-primary/20" : "text-white"
-                            )}>
-                                {format(day, 'd')}
-                            </div>
+            <div className="bg-card-bg/70 border border-white/5 rounded-3xl flex flex-col h-[700px] backdrop-blur-xl shadow-2xl shadow-black/50 overflow-hidden relative">
+                <div className="flex flex-col flex-1 overflow-x-auto scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent">
+                    <div className="flex flex-col flex-1 min-w-[700px]">
+                        <div className="flex border-b border-white/5 bg-dark-bg/80 shrink-0">
+                            <div className="w-16 shrink-0 border-r border-white/5"></div>
+                            {daysToRender.map((day, i) => (
+                                <div key={i} className="flex-1 text-center py-4 border-r border-white/5 relative group">
+                                    <div className="absolute inset-0 bg-gradient-to-b from-white/0 to-white/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                                    <div className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">{format(day, 'EEE', { locale: pt })}</div>
+                                    <div className={cn(
+                                        "text-xl font-bold mx-auto w-11 h-11 flex items-center justify-center rounded-full transition-all duration-300 relative z-10",
+                                        isSameDay(day, new Date()) ? "bg-gradient-to-br from-primary to-secondary text-dark shadow-lg shadow-primary/30 scale-110" : "text-white group-hover:text-primary group-hover:bg-primary/10"
+                                    )}>
+                                        {format(day, 'd')}
+                                    </div>
+                                </div>
+                            ))}
+                            <div className="w-16 shrink-0"></div>
                         </div>
-                    ))}
-                </div>
 
-                <div className="flex flex-1 overflow-y-auto relative scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent">
-                    <div className="w-20 shrink-0 border-r border-white/10 bg-black/40 relative z-20">
-                        {hours.map((hour) => (
-                            <div key={hour} className="h-24 text-xs text-center text-gray-500 font-medium relative border-b border-white/5">
-                                <span className="absolute -top-3 left-0 right-0 bg-transparent">{hour.toString().padStart(2, '0')}:00</span>
-                            </div>
-                        ))}
-                    </div>
-
-                    <div className="flex flex-1 relative min-w-[500px]">
-
-
-
-                        {daysToRender.map((day, i) => {
-                            const dayEvents = events.filter(e => isSameDay(e.start, day));
-
-                            return (
-                                <div key={i} className="flex-1 border-r border-white/10 last:border-r-0 relative">
-                                    {hours.map((hour) => (
-                                        <div key={hour} className="h-24 border-b border-white/5 hover:bg-white/[0.02] transition-colors"></div>
-                                    ))}
-
-                                    {/* Professional Red line for current time restricted to 'today' column */}
-                                    {isSameDay(day, currentTime) && showCurrentTimeLine && (
-                                        <div 
-                                            className="absolute left-0 right-0 z-[40] flex items-center pointer-events-none"
-                                            style={{ top: `${currentTimeTop}px`, transform: 'translateY(-50%)', transition: 'top 1s linear' }}
-                                        >
-                                            <div className="w-3 h-3 rounded-full bg-red-500 shadow-[0_0_10px_rgba(239,68,68,0.8)] absolute -left-1.5 flex items-center justify-center">
-                                                <div className="w-full h-full rounded-full bg-red-400 animate-ping opacity-75"></div>
-                                            </div>
-                                            <div className="w-full border-t-2 border-red-500 shadow-[0_0_12px_rgba(239,68,68,0.8)]"></div>
-                                            <div className="absolute right-0 bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-l-md shadow-lg pointer-events-auto">
-                                                {format(currentTime, 'HH:mm')}
-                                            </div>
+                        <div className="flex flex-1 overflow-y-auto relative scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent">
+                            <div className="flex min-w-full min-h-max pt-6 pb-8 relative">
+                                {/* Global Current Time Line */}
+                                {showCurrentTimeLine && (
+                                    <div
+                                        className="absolute left-16 right-0 z-[40] flex items-center pointer-events-none"
+                                        style={{ top: `${currentTimeTop + 24}px`, transform: 'translateY(-50%)', transition: 'top 1s linear' }}
+                                    >
+                                        <div className="absolute -left-[3.5rem] bg-red-500 text-white text-[11px] font-bold px-1.5 py-0.5 rounded shadow-lg pointer-events-auto border border-red-500/20 z-20">
+                                            {format(currentTime, 'HH:mm')}
                                         </div>
-                                    )}
+                                        <div className="absolute -left-2 w-3 h-3 rounded-full bg-red-500 shadow-[0_0_12px_rgba(239,68,68,0.8)] flex items-center justify-center z-10">
+                                            <div className="w-full h-full rounded-full bg-red-400 animate-ping opacity-75"></div>
+                                        </div>
+                                        <div className="w-full border-t-2 border-red-500 shadow-[0_0_10px_rgba(239,68,68,0.6)]"></div>
+                                    </div>
+                                )}
+                                <div className="w-16 shrink-0 relative z-20 border-r border-white/5">
+                                    {hours.map((hour) => (
+                                        <div key={hour} className="h-24 relative">
+                                            <div className="absolute -top-2.5 right-3 flex justify-end z-10 w-full">
+                                                <span className={cn(
+                                                    "text-[11px] font-bold tracking-wider",
+                                                    hour === getHours(new Date())
+                                                        ? "text-primary drop-shadow-[0_0_8px_rgba(212,175,55,0.6)]"
+                                                        : "text-gray-500"
+                                                )}>
+                                                    {hour.toString().padStart(2, '0')}:00
+                                                </span>
+                                            </div>
+                                            {hour === END_HOUR && (
+                                                <div className="absolute -bottom-2.5 right-3 flex justify-end z-10 w-full">
+                                                    <span className={cn(
+                                                        "text-[11px] font-bold tracking-wider",
+                                                        (hour + 1) === getHours(new Date())
+                                                            ? "text-primary drop-shadow-[0_0_8px_rgba(212,175,55,0.6)]"
+                                                            : "text-gray-500"
+                                                    )}>
+                                                        {(hour + 1).toString().padStart(2, '0')}:00
+                                                    </span>
+                                                </div>
+                                            )}
+                                        </div>
+                                    ))}
+                                </div>
 
-                                    {dayEvents.map(evt => {
-                                        const startHourOffset = getHours(evt.start) + getMinutes(evt.start) / 60 - START_HOUR;
-                                        const topPos = startHourOffset * 96; // 96px = h-24
-                                        const endOffset = evt.end ? getHours(evt.end) + getMinutes(evt.end) / 60 - START_HOUR : startHourOffset + 1; // Assume 1 hr if no end
-                                        const durationHours = endOffset - startHourOffset;
-                                        const height = Math.max(durationHours * 96, 30); // min height
-
-                                        if (topPos < 0) return null;
+                                <div className="flex flex-1 relative">
+                                    {daysToRender.map((day, i) => {
+                                        const isBlocked = blockedDays.some(d => isSameDay(d, day));
+                                        const dayEvents = events.filter(e => isSameDay(e.start, day));
 
                                         return (
-                                            <div
-                                                key={evt.id}
-                                                onClick={() => setSelectedEvent(evt)}
-                                                className={cn(
-                                                    "absolute left-1 right-1 rounded-lg p-2 border shadow-lg overflow-hidden z-10 hover:z-30 transition-all hover:scale-[1.02] hover:shadow-xl group backdrop-blur-md cursor-pointer",
-                                                    getStatusStyle(evt.status)
+                                            <div key={i} className="flex-1 border-r border-white/5 relative">
+                                                {isBlocked && (
+                                                    <div className="absolute inset-0 bg-red-900/10 z-[25] flex flex-col items-center justify-center backdrop-blur-[1px]">
+                                                        <span className="text-red-500/60 font-bold tracking-widest uppercase rotate-[-90deg] whitespace-nowrap mb-8">Dia Bloqueado</span>
+                                                        {onUnblockDay && (
+                                                            <button
+                                                                onClick={() => onUnblockDay(day)}
+                                                                className="px-3 py-1.5 bg-red-500/20 text-red-500 hover:bg-red-500 hover:text-white rounded-lg text-xs font-bold transition-colors z-[30]"
+                                                            >
+                                                                Desbloquear
+                                                            </button>
+                                                        )}
+                                                    </div>
                                                 )}
-                                                style={{ top: `${topPos}px`, height: `${height}px` }}
-                                            >
-                                                <div className="text-[11px] font-bold leading-tight opacity-80 mb-1">
-                                                    {format(evt.start, 'HH:mm')} - {format(evt.end || addHours(evt.start, 1), 'HH:mm')}
-                                                </div>
-                                                <div className="text-sm font-bold truncate group-hover:whitespace-normal">{evt.title}</div>
-                                                {evt.subtitle && <div className="text-[11px] font-medium opacity-90 truncate mt-1 group-hover:whitespace-normal">{evt.subtitle}</div>}
+                                                {hours.map((hour) => (
+                                                    <div key={hour} className={cn(
+                                                        "h-24 border-b border-white/5 hover:bg-white/[0.02] transition-colors",
+                                                        hour === START_HOUR && "border-t border-white/5"
+                                                    )}></div>
+                                                ))}
+
+                                                {/* Removed localized time line so it can be global */}
+
+                                                {dayEvents.map(evt => {
+                                                    const startHourOffset = getHours(evt.start) + getMinutes(evt.start) / 60 - START_HOUR;
+                                                    const topPos = startHourOffset * 96; // 96px = h-24
+                                                    const endOffset = evt.end ? getHours(evt.end) + getMinutes(evt.end) / 60 - START_HOUR : startHourOffset + 1; // Assume 1 hr if no end
+                                                    const durationHours = endOffset - startHourOffset;
+                                                    const height = Math.max(durationHours * 96, 30); // min height
+
+                                                    if (topPos < 0) return null;
+
+                                                    return (
+                                                        <div
+                                                            key={evt.id}
+                                                            onClick={() => setSelectedEvent(evt)}
+                                                            className={cn(
+                                                                "absolute left-1.5 right-1.5 rounded-xl p-3 border shadow-md overflow-hidden z-10 hover:z-30 transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl hover:shadow-black/50 group backdrop-blur-md cursor-pointer",
+                                                                getStatusStyle(evt.status)
+                                                            )}
+                                                            style={{ top: `${topPos}px`, height: `${height}px` }}
+                                                        >
+                                                            <div className="text-[11px] font-bold tracking-wider opacity-80 mb-1.5 bg-black/20 inline-block px-1.5 py-0.5 rounded-md">
+                                                                {format(evt.start, 'HH:mm')} - {format(evt.end || addHours(evt.start, 1), 'HH:mm')}
+                                                            </div>
+                                                            <div className="text-sm font-bold truncate group-hover:whitespace-normal">{evt.title}</div>
+                                                            {evt.subtitle && <div className="text-[11px] font-medium opacity-90 truncate mt-1 group-hover:whitespace-normal">{evt.subtitle}</div>}
+                                                        </div>
+                                                    )
+                                                })}
                                             </div>
                                         )
                                     })}
                                 </div>
-                            )
-                        })}
+                                <div className="w-16 shrink-0"></div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -313,11 +390,12 @@ const Calendar: React.FC<CalendarProps> = ({ events, view, onViewChange, current
 
             {/* Event Details Modal */}
             {selectedEvent && (
-                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in" onClick={() => setSelectedEvent(null)}>
-                    <div className="bg-zinc-900 border border-white/10 rounded-2xl p-6 max-w-sm w-full shadow-2xl animate-in zoom-in-95" onClick={e => e.stopPropagation()}>
-                        <div className="flex justify-between items-start mb-6">
-                            <h3 className="text-xl font-bold text-white">Detalhes da Marcação</h3>
-                            <button onClick={() => setSelectedEvent(null)} className="text-gray-400 hover:text-white p-1 rounded-lg hover:bg-white/5 transition-colors">
+                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-dark-bg/80 backdrop-blur-md p-4 animate-in fade-in duration-300" onClick={() => setSelectedEvent(null)}>
+                    <div className="bg-card-bg border border-white/10 rounded-3xl p-6 max-w-sm w-full shadow-2xl shadow-black/60 animate-in zoom-in-95 duration-300 relative overflow-hidden" onClick={e => e.stopPropagation()}>
+                        <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-primary to-secondary"></div>
+                        <div className="flex justify-between items-start mb-6 mt-2">
+                            <h3 className="text-2xl font-heading font-bold text-white">Detalhes da Marcação</h3>
+                            <button onClick={() => setSelectedEvent(null)} className="text-gray-400 hover:text-white p-2 rounded-xl hover:bg-white/10 transition-colors bg-dark-bg/50">
                                 <X className="w-5 h-5" />
                             </button>
                         </div>
@@ -325,16 +403,16 @@ const Calendar: React.FC<CalendarProps> = ({ events, view, onViewChange, current
                             <div className="p-3 rounded-xl bg-white/5 border border-white/5">
                                 <p className="text-xs text-gray-400 uppercase tracking-wider font-bold mb-2">Cliente</p>
                                 <p className="text-white font-medium flex items-center gap-3 mb-2">
-                                    <User className="w-4 h-4 text-primary"/> {selectedEvent.clientDetails?.name || selectedEvent.title}
+                                    <User className="w-4 h-4 text-primary" /> {selectedEvent.clientDetails?.name || selectedEvent.title}
                                 </p>
                                 {selectedEvent.clientDetails?.phone && (
                                     <p className="text-white font-medium flex items-center gap-3 mb-2">
-                                        <Phone className="w-4 h-4 text-primary"/> {selectedEvent.clientDetails.phone}
+                                        <Phone className="w-4 h-4 text-primary" /> {selectedEvent.clientDetails.phone}
                                     </p>
                                 )}
                                 {selectedEvent.clientDetails?.email && (
                                     <p className="text-white font-medium flex items-center gap-3">
-                                        <Mail className="w-4 h-4 text-primary"/> {selectedEvent.clientDetails.email}
+                                        <Mail className="w-4 h-4 text-primary" /> {selectedEvent.clientDetails.email}
                                     </p>
                                 )}
                             </div>
@@ -344,7 +422,7 @@ const Calendar: React.FC<CalendarProps> = ({ events, view, onViewChange, current
                                     {format(selectedEvent.start, "d 'de' MMMM, yyyy", { locale: pt })}
                                 </p>
                                 <p className="text-primary font-bold">
-                                    {format(selectedEvent.start, 'HH:mm')} - {format(selectedEvent.end || new Date(selectedEvent.start.getTime() + 60*60000), 'HH:mm')}
+                                    {format(selectedEvent.start, 'HH:mm')} - {format(selectedEvent.end || new Date(selectedEvent.start.getTime() + 60 * 60000), 'HH:mm')}
                                 </p>
                                 {selectedEvent.subtitle && <p className="text-gray-300 mt-2 text-sm">{selectedEvent.subtitle}</p>}
                             </div>

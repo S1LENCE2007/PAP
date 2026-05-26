@@ -27,6 +27,8 @@ create table public.servicos (
   preco numeric not null,
   duracao integer not null, -- em minutos
   imagem_url text,
+  categoria text check (categoria in ('cabelo', 'barba', 'combo')) default 'cabelo',
+  disponivel boolean default true,
   created_at timestamp with time zone default timezone('utc'::text, now()) not null
 );
 

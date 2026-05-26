@@ -25,6 +25,7 @@ interface Appointment {
 
 const AdminAppointments: React.FC = () => {
     const [appointments, setAppointments] = useState<Appointment[]>([]);
+    const [blockedAppointments, setBlockedAppointments] = useState<Appointment[]>([]);
     const [loading, setLoading] = useState(true);
     // Reschedule states
     const [reschedulingApt, setReschedulingApt] = useState<any>(null);
@@ -102,9 +103,13 @@ const AdminAppointments: React.FC = () => {
                 };
             });
 
-            setAppointments(formattedData);
+            const blocks = formattedData.filter((item: any) => item.servicos?.nome === 'BLOQUEIO_DIA');
+            const regular = formattedData.filter((item: any) => item.servicos?.nome !== 'BLOQUEIO_DIA');
+
+            setBlockedAppointments(blocks);
+            setAppointments(regular);
         } catch (error) {
-            console.error('Erro ao buscar agendamentos:', error);
+            console.error('Erro ao buscar marcações:', error);
         } finally {
             setLoading(false);
         }
@@ -134,7 +139,7 @@ const AdminAppointments: React.FC = () => {
     const handleRescheduleSubmit = async () => {
         if (!newDate || !newTime) return alert('Por favor, selecione a nova data e hora.');
         const novaDataHora = `${newDate}T${newTime}:00`;
-        
+
         try {
             const { error } = await supabase
                 .from('Marcacoes')
@@ -142,34 +147,99 @@ const AdminAppointments: React.FC = () => {
                 .eq('id', reschedulingApt.id);
 
             if (error) throw error;
-            
+
             fetchAppointments();
             setReschedulingApt(null);
             setNewDate('');
             setNewTime('');
             alert('Marcação reagendada com sucesso!');
         } catch (error) {
-            console.error('Erro ao reagendar:', error);
-            alert('Erro ao reagendar a marcação.');
+            console.error('Erro ao remarcar:', error);
+            alert('Erro ao remarcar a marcação.');
         }
     };
 
 
 
-    const calendarEvents: CalendarEvent[] = appointments.map(apt => ({
-        id: apt.id,
-        title: apt.perfis?.nome || 'Cliente',
-        subtitle: `${apt.servicos?.nome || 'Vários'} • ${apt.barbeiros?.nome || ''}`,
-        start: new Date(apt.data_hora),
-        end: new Date(new Date(apt.data_hora).getTime() + (apt.servicos?.duracao || 30) * 60000),
-        status: apt.status,
-        clientDetails: {
-            name: apt.perfis?.nome || 'Cliente',
-            phone: apt.perfis?.telemovel,
-            email: apt.perfis?.email
-        },
-        rawAppointment: apt
-    }));
+    const [isSelectionMode, setIsSelectionMode] = useState(false);
+    const [selectedDates, setSelectedDates] = useState<Date[]>([]);
+
+    const handleDaySelect = (date: Date) => {
+        setSelectedDates(prev => {
+            const isAlreadySelected = prev.some(d => d.getTime() === date.getTime());
+            if (isAlreadySelected) {
+                return prev.filter(d => d.getTime() !== date.getTime());
+            } else {
+                return [...prev, date];
+            }
+        });
+    };
+
+    const handleBlockDaySubmit = async () => {
+        if (selectedDates.length === 0) return alert('Por favor, selecione pelo menos uma data.');
+        try {
+            // 1. Get or create BLOQUEIO_DIA service
+            let { data: servico } = await supabase.from('servicos').select('id').eq('nome', 'BLOQUEIO_DIA').maybeSingle();
+            if (!servico) {
+                const { data: newServ, error: errServ } = await supabase.from('servicos').insert([{
+                    nome: 'BLOQUEIO_DIA',
+                    descricao: 'Bloqueio administrativo do dia inteiro',
+                    preco: 0,
+                    duracao: 600 // 10 horas
+                }]).select('id').single();
+                if (errServ) throw errServ;
+                servico = newServ;
+            }
+
+            // 2. Get any barber to assign the block to
+            const { data: barbeiro } = await supabase.from('barbeiros').select('id').limit(1).single();
+            if (!barbeiro) throw new Error('Nenhum barbeiro encontrado para associar o bloqueio.');
+
+            // 3. Get current user
+            const { data: { user } } = await supabase.auth.getUser();
+
+            // 4. Create block appointments for each selected date
+            const blockAppointments = selectedDates.map(date => {
+                const dateString = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+                return {
+                    cliente_id: user?.id,
+                    barbeiro_id: barbeiro.id,
+                    servico_id: servico.id,
+                    data_hora: `${dateString}T00:00:00`,
+                    status: 'confirmado'
+                };
+            });
+
+            const { error: errApt } = await supabase.from('Marcacoes').insert(blockAppointments);
+
+            if (errApt) throw errApt;
+
+            alert('Dias bloqueados com sucesso!');
+            setIsSelectionMode(false);
+            setSelectedDates([]);
+            fetchAppointments();
+        } catch (error) {
+            console.error('Erro ao bloquear dia:', error);
+            alert('Erro ao bloquear o dia. Tente novamente.');
+        }
+    };
+
+    const calendarEvents: CalendarEvent[] = appointments.map(apt => {
+        return {
+            id: apt.id,
+            title: apt.perfis?.nome || 'Cliente',
+            subtitle: `${apt.servicos?.nome || 'Vários'} • ${apt.barbeiros?.nome || ''}`,
+            start: new Date(apt.data_hora),
+            end: new Date(new Date(apt.data_hora).getTime() + (apt.servicos?.duracao || 30) * 60000),
+            status: apt.status,
+            clientDetails: {
+                name: apt.perfis?.nome || 'Cliente',
+                phone: apt.perfis?.telemovel,
+                email: apt.perfis?.email
+            },
+            rawAppointment: apt
+        };
+    });
 
     const renderAdminActions = (event: CalendarEvent) => {
         const apt = event.rawAppointment;
@@ -184,7 +254,7 @@ const AdminAppointments: React.FC = () => {
                         }}
                         className="flex-1 min-w-[120px] py-2 bg-zinc-700/50 text-gray-300 rounded-lg hover:bg-zinc-600 transition-all font-bold flex items-center justify-center gap-2 border border-white/5"
                     >
-                        <Repeat className="w-4 h-4" /> Reagendar
+                        <Repeat className="w-4 h-4" /> Remarcar
                     </button>
                 )}
                 {(apt.status === 'marcado' || apt.status === 'pendente') && (
@@ -219,9 +289,39 @@ const AdminAppointments: React.FC = () => {
         <div className="space-y-6">
             <header className="flex flex-col md:flex-row justify-between items-end gap-4 mb-4">
                 <div>
-                    <h1 className="text-3xl font-heading font-bold text-white">Calendário de Agendamentos</h1>
+                    <h1 className="text-3xl font-heading font-bold text-white">Calendário de Marcações</h1>
                     <p className="text-gray-400">Visão global e gestão imediata de todas as marcações.</p>
                 </div>
+                {calendarView === 'month' && (
+                    <div className="flex gap-2">
+                        {isSelectionMode ? (
+                            <>
+                                <button
+                                    onClick={() => {
+                                        setIsSelectionMode(false);
+                                        setSelectedDates([]);
+                                    }}
+                                    className="px-6 py-2.5 bg-zinc-700 text-white border border-white/20 hover:bg-zinc-600 rounded-xl font-bold transition-colors"
+                                >
+                                    Cancelar
+                                </button>
+                                <button
+                                    onClick={handleBlockDaySubmit}
+                                    className="px-6 py-2.5 bg-red-500 text-white border border-red-500 hover:bg-red-600 rounded-xl font-bold transition-colors flex items-center gap-2 shadow-lg shadow-red-500/20"
+                                >
+                                    <Check className="w-5 h-5" /> Confirmar Bloqueios ({selectedDates.length})
+                                </button>
+                            </>
+                        ) : (
+                            <button
+                                onClick={() => setIsSelectionMode(true)}
+                                className="px-6 py-2.5 bg-red-500/10 text-red-500 border border-red-500/20 hover:bg-red-500/20 rounded-xl font-bold transition-colors flex items-center gap-2"
+                            >
+                                <X className="w-5 h-5" /> Bloquear Dia
+                            </button>
+                        )}
+                    </div>
+                )}
             </header>
 
             {/* Main Content Area */}
@@ -237,8 +337,31 @@ const AdminAppointments: React.FC = () => {
                     currentDate={currentDate}
                     onDateChange={setCurrentDate}
                     renderActions={renderAdminActions}
+                    selectionMode={isSelectionMode}
+                    selectedDates={selectedDates}
+                    onDaySelect={handleDaySelect}
+                    blockedDays={blockedAppointments.map(b => new Date(b.data_hora))}
+                    onUnblockDay={async (date) => {
+                        if (!window.confirm('Tem a certeza que deseja remover este bloqueio?')) return;
+                        // Find the block appointment matching the date
+                        const blockApt = blockedAppointments.find(b => {
+                            const bDate = new Date(b.data_hora);
+                            return bDate.getFullYear() === date.getFullYear() && 
+                                   bDate.getMonth() === date.getMonth() && 
+                                   bDate.getDate() === date.getDate();
+                        });
+                        if (blockApt) {
+                            try {
+                                await supabase.from('Marcacoes').delete().eq('id', blockApt.id);
+                                fetchAppointments();
+                            } catch (e) {
+                                alert('Erro ao remover bloqueio.');
+                            }
+                        }
+                    }}
                 />
             )}
+
 
             {/* Reschedule Modal */}
             <AnimatePresence>
@@ -250,13 +373,13 @@ const AdminAppointments: React.FC = () => {
                             exit={{ opacity: 0, scale: 0.95 }}
                             className="bg-zinc-900 border border-white/10 rounded-2xl p-6 w-full max-w-sm shadow-2xl"
                         >
-                            <h3 className="text-xl font-bold text-white mb-4">Reagendar Marcação</h3>
+                            <h3 className="text-xl font-bold text-white mb-4">Remarcar Marcação</h3>
                             <p className="text-sm text-gray-400 mb-6">Selecione a nova data e hora para a marcação de <span className="text-white font-bold">{reschedulingApt.perfis?.nome || 'Cliente'}</span>.</p>
-                            
+
                             <div className="space-y-4 mb-6">
                                 <div>
                                     <label className="block text-sm text-gray-400 mb-1">Nova Data</label>
-                                    <input 
+                                    <input
                                         type="date"
                                         value={newDate}
                                         onChange={(e) => setNewDate(e.target.value)}
@@ -265,7 +388,7 @@ const AdminAppointments: React.FC = () => {
                                 </div>
                                 <div>
                                     <label className="block text-sm text-gray-400 mb-1">Nova Hora</label>
-                                    <input 
+                                    <input
                                         type="time"
                                         value={newTime}
                                         onChange={(e) => setNewTime(e.target.value)}

@@ -26,8 +26,8 @@ const Navbar: React.FC = () => {
 
     const navLinks = [
         { name: 'Serviços', path: '/servicos', icon: Scissors },
-        { name: 'Galeria', path: '/galeria', icon: Image },
         { name: 'Loja', path: '/loja', icon: ShoppingBag },
+        { name: 'Galeria', path: '/galeria', icon: Image },
         { name: 'Avaliações', path: '/avaliacoes', icon: Star },
         { name: 'Contactos', path: '/contato', icon: Phone },
         // Admin link moved to separate logic

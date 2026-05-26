@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Users, Calendar, ShoppingBag, Loader, ArrowRight, Clock } from 'lucide-react';
+import { Users, Calendar, ShoppingBag, Loader, ArrowRight, Clock, Star } from 'lucide-react';
 import { supabase } from '../../utils/supabase';
 import { motion } from 'framer-motion';
 import { useNavigate, Link } from 'react-router-dom';
@@ -8,9 +8,7 @@ const AdminDashboard: React.FC = () => {
     const [stats, setStats] = useState({
         totalClients: 0,
         todayAppointments: 0,
-        totalProducts: 0,
-        pendingReviews: 0,
-        totalRevenue: 0
+        totalProducts: 0
     });
     const navigate = useNavigate();
     const [recentActivity, setRecentActivity] = useState<{ id: string; data_hora: string; status: string; perfis: { nome: string, telemovel?: string, email?: string } | { nome: string, telemovel?: string, email?: string }[] | null; servicos: { nome: string } | { nome: string }[] | null }[]>([]);
@@ -21,16 +19,10 @@ const AdminDashboard: React.FC = () => {
             try {
                 const today = new Date().toISOString().split('T')[0];
 
-                const [clients, appointments, products, reviews, revenueDataResult, recentAptsResult] = await Promise.all([
-                    supabase.from('perfis').select('id', { count: 'exact' }).eq('role', 'cliente'),
-                    supabase.from('Marcacoes').select('id', { count: 'exact' }).gte('data_hora', `${today}T00:00:00`).lte('data_hora', `${today}T23:59:59`),
-                    supabase.from('produtos').select('id', { count: 'exact' }),
-                    supabase.from('avaliacoes').select('id', { count: 'exact' }),
-                    supabase.from('Marcacoes')
-                        .select(`
-                            servicos (preco)
-                        `)
-                        .eq('status', 'concluido'),
+                const [clients, appointments, products, recentAptsResult] = await Promise.all([
+                    supabase.from('perfis').select('*', { count: 'exact', head: true }).in('role', ['client', 'cliente']),
+                    supabase.from('Marcacoes').select('*', { count: 'exact', head: true }).gte('data_hora', `${today}T00:00:00`).lte('data_hora', `${today}T23:59:59`),
+                    supabase.from('produtos').select('*', { count: 'exact', head: true }),
                     supabase.from('Marcacoes')
                         .select(`
                             id,
@@ -43,18 +35,10 @@ const AdminDashboard: React.FC = () => {
                         .limit(5)
                 ]);
 
-                // Calculate total revenue from the specific revenue query result
-                const totalRevenue = revenueDataResult.data?.reduce((acc, curr) => {
-                    // @ts-ignore
-                    return acc + (curr.servicos?.preco || 0);
-                }, 0) || 0;
-
                 setStats({
                     totalClients: clients.count || 0,
                     todayAppointments: appointments.count || 0,
-                    totalProducts: products.count || 0,
-                    pendingReviews: reviews.count || 0,
-                    totalRevenue: totalRevenue
+                    totalProducts: products.count || 0
                 });
 
                 const mappedRecent = (recentAptsResult.data || []).map(item => ({
@@ -74,9 +58,8 @@ const AdminDashboard: React.FC = () => {
 
     const statCards = [
         { title: 'Clientes Totais', value: stats.totalClients, icon: Users, color: 'text-blue-400', bg: 'from-blue-500/20 to-blue-600/5', border: 'border-blue-500/20' },
-        { title: 'Agendamentos Hoje', value: stats.todayAppointments, icon: Calendar, color: 'text-amber-400', bg: 'from-amber-500/20 to-amber-600/5', border: 'border-amber-500/20' },
+        { title: 'Marcações Hoje', value: stats.todayAppointments, icon: Calendar, color: 'text-amber-400', bg: 'from-amber-500/20 to-amber-600/5', border: 'border-amber-500/20' },
         { title: 'Produtos', value: stats.totalProducts, icon: ShoppingBag, color: 'text-purple-400', bg: 'from-purple-500/20 to-purple-600/5', border: 'border-purple-500/20' },
-        { title: 'Receita Total', value: `${stats.totalRevenue}€`, icon: ShoppingBag, color: 'text-emerald-400', bg: 'from-emerald-500/20 to-emerald-600/5', border: 'border-emerald-500/20' },
     ];
 
     if (loading) {
@@ -108,7 +91,7 @@ const AdminDashboard: React.FC = () => {
             </header>
 
             {/* Stats Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
                 {statCards.map((stat, index) => (
                     <motion.div
                         key={index}
@@ -136,8 +119,8 @@ const AdminDashboard: React.FC = () => {
                     {/* Recent Activity */}
                     <div className="bg-zinc-900/50 border border-white/5 rounded-2xl p-6 backdrop-blur-sm">
                         <div className="flex justify-between items-center mb-6">
-                            <h2 className="text-xl font-bold text-white">Últimos Agendamentos</h2>
-                            <Link to="/admin/agendamentos" className="text-primary hover:text-amber-300 text-sm flex items-center gap-1 transition-colors">
+                            <h2 className="text-xl font-bold text-white">Últimos Marcações</h2>
+                            <Link to="/admin/marcações" className="text-primary hover:text-amber-300 text-sm flex items-center gap-1 transition-colors">
                                 Ver todos <ArrowRight className="w-4 h-4" />
                             </Link>
                         </div>
@@ -156,7 +139,7 @@ const AdminDashboard: React.FC = () => {
                                                 </p>
                                                 <div className="flex flex-col sm:flex-row gap-1 sm:gap-3 text-xs text-gray-400 mt-0.5">
                                                     <span>{Array.isArray(apt.perfis) ? apt.perfis[0]?.telemovel : apt.perfis?.telemovel}</span>
-                                                    <span className="hidden sm:inline">•</span>
+                                                    <span className="hidden sm:inline">â€¢</span>
                                                     <span>{Array.isArray(apt.perfis) ? apt.perfis[0]?.email : apt.perfis?.email}</span>
                                                 </div>
                                                 <p className="text-sm text-primary mt-1">
@@ -183,7 +166,7 @@ const AdminDashboard: React.FC = () => {
                         ) : (
                             <div className="text-center py-10 text-gray-500">
                                 <Calendar className="w-12 h-12 mx-auto mb-3 opacity-20" />
-                                <p>Sem agendamentos recentes.</p>
+                                <p>Sem marcações recentes.</p>
                             </div>
                         )}
                     </div>
@@ -194,7 +177,7 @@ const AdminDashboard: React.FC = () => {
                     <div className="bg-zinc-900/50 border border-white/5 rounded-2xl p-6 backdrop-blur-sm">
                         <h2 className="text-xl font-bold text-white mb-6">Ações Rápidas</h2>
                         <div className="space-y-3">
-                            <button onClick={() => navigate('/admin/agendamentos')}
+                            <button onClick={() => navigate('/admin/marcações')}
                                 className="w-full p-4 rounded-xl bg-white/5 hover:bg-primary/10 border border-white/5 hover:border-primary/30 flex items-center gap-4 transition-all group text-left">
                                 <div className="p-2 rounded-lg bg-primary/20 text-primary group-hover:scale-110 transition-transform">
                                     <Calendar className="w-5 h-5" />

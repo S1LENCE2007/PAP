@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '../../utils/supabase';
 import { Save, Loader, Edit, Trash, X, Search } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
 
 interface UserProfile {
     id: string;
@@ -12,6 +13,7 @@ interface UserProfile {
 }
 
 const AdminManage: React.FC = () => {
+    const navigate = useNavigate();
     const [users, setUsers] = useState<UserProfile[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
@@ -147,10 +149,10 @@ const AdminManage: React.FC = () => {
 
                 <div className="flex gap-4 items-center">
                     <button
-                        onClick={() => window.location.href = '/admin/criar-barbeiro'}
+                        onClick={() => navigate('/admin/criar-utilizador')}
                         className="bg-primary text-black px-4 py-2 rounded-xl font-bold hover:bg-primary/90 transition-colors flex items-center gap-2"
                     >
-                        + Novo Barbeiro
+                        + Novo Utilizador
                     </button>
                     <div className="relative">
                         <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 w-4 h-4" />

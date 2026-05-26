@@ -128,7 +128,7 @@ const Profile: React.FC = () => {
 
                 setAppointments(formattedData);
             } catch (error) {
-                console.error('Erro ao buscar agendamentos:', error);
+                console.error('Erro ao buscar marcações:', error);
             } finally {
                 setLoading(false);
             }
@@ -208,14 +208,14 @@ const Profile: React.FC = () => {
     };
 
     const handleCancel = async (id: string) => {
-        if (!confirm('Tem certeza que deseja cancelar este agendamento?')) return;
+        if (!confirm('Tem certeza que deseja cancelar este marcação?')) return;
         try {
             const { error } = await supabase.from('Marcacoes').update({ status: 'cancelado' }).eq('id', id);
             if (error) throw error;
             setAppointments(prev => prev.map(apt => apt.id === id ? { ...apt, status: 'cancelado' } : apt));
         } catch (error) {
             console.error('Erro ao cancelar:', error);
-            alert('Erro ao cancelar agendamento.');
+            alert('Erro ao cancelar marcação.');
         }
     };
 
@@ -250,7 +250,7 @@ const Profile: React.FC = () => {
         <div className="min-h-screen bg-dark-bg text-gray-100">
             <PageHeader
                 title={<>MEU <span className="text-primary">DASHBOARD</span></>}
-                subtitle="Faça a gestão do seu perfil, agendamentos e encomendas."
+                subtitle="Faça a gestão do seu perfil, marcações e encomendas."
                 backgroundImage="https://images.unsplash.com/photo-1621605815971-fbc98d665033?q=80&w=2070&auto=format&fit=crop"
             />
 
@@ -587,7 +587,7 @@ const Profile: React.FC = () => {
                                                             <button
                                                                 onClick={() => handleReschedule(apt)}
                                                                 className="p-2 hover:bg-gray-700/50 rounded-lg text-gray-400 hover:text-white transition-colors"
-                                                                title="Reagendar"
+                                                                title="Remarcar"
                                                             >
                                                                 <Repeat className="w-4 h-4" />
                                                             </button>
@@ -613,12 +613,12 @@ const Profile: React.FC = () => {
                                     <History className="w-8 h-8 text-gray-500" />
                                 </div>
                                 <h3 className="text-xl font-bold text-white mb-2">
-                                    {activeTab === 'upcoming' ? "Sem agendamentos futuros" : "Sem histórico recente"}
+                                    {activeTab === 'upcoming' ? "Sem marcações futuros" : "Sem histórico recente"}
                                 </h3>
                                 <p className="text-gray-400 mb-8 max-w-sm">
                                     {activeTab === 'upcoming'
                                         ? "Você não tem nenhum corte agendado para os próximos dias."
-                                        : "Você ainda não realizou agendamentos conosco."}
+                                        : "Você ainda não realizou marcações conosco."}
                                 </p>
                                 <button onClick={() => navigate('/agendar')} className="btn-primary px-8 py-3">
                                     Agendar Agora

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { ShoppingBag, Loader, Package, Calendar, DollarSign, QrCode, Clock, CheckCircle, XCircle } from 'lucide-react';
+import { ShoppingBag, Loader, Package, Calendar, QrCode, Clock, CheckCircle, XCircle } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../utils/supabase';
 import PageHeader from '../components/layout/PageHeader';

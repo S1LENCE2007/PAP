@@ -169,7 +169,7 @@ const RescheduleModal: React.FC<RescheduleModalProps> = ({
                     <div className="sticky top-0 bg-zinc-900/95 backdrop-blur-md p-6 border-b border-white/5 z-20 flex justify-between items-center">
                         <div>
                             <h2 className="text-2xl font-bold text-white font-heading tracking-wide">Remarcar Horário</h2>
-                            <p className="text-sm text-gray-400 mt-1">Atualize qualquer detalhe do seu agendamento.</p>
+                            <p className="text-sm text-gray-400 mt-1">Atualize qualquer detalhe do seu marcação.</p>
                         </div>
                         <button
                             onClick={onClose}

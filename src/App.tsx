@@ -22,7 +22,7 @@ import Reviews from './pages/Reviews';
 import AdminDashboard from './pages/admin/Dashboard';
 import AdminAppointments from './pages/admin/Appointments';
 import AdminManage from './pages/admin/Manage';
-import CreateBarber from './pages/admin/CreateBarber';
+import CreateUser from './pages/admin/CreateUser';
 import AdminProducts from './pages/admin/Products';
 import AdminGallery from './pages/admin/Gallery';
 import AdminServices from './pages/admin/Services';
@@ -69,9 +69,9 @@ function App() {
               } />
               <Route path="/admin" element={<AdminLayout />}>
                 <Route index element={<AdminDashboard />} />
-                <Route path="agendamentos" element={<AdminAppointments />} />
+                <Route path="marcações" element={<AdminAppointments />} />
                 <Route path="gerenciar" element={<AdminManage />} />
-                <Route path="criar-barbeiro" element={<CreateBarber />} />
+                <Route path="criar-utilizador" element={<CreateUser />} />
                 <Route path="produtos" element={<AdminProducts />} />
                 <Route path="galeria" element={<AdminGallery />} />
                 <Route path="servicos" element={<AdminServices />} />

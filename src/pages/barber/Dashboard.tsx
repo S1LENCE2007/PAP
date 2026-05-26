@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../utils/supabase';
-import { Calendar as CalendarIcon, Scissors, CheckCircle, AlertCircle, X, Repeat, Loader } from 'lucide-react';
+import { Calendar as CalendarIcon, CheckCircle, AlertCircle, X, Repeat, Loader } from 'lucide-react';
 import Calendar, { type CalendarEvent } from '../../components/Calendar';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -72,28 +72,31 @@ const BarberDashboard: React.FC = () => {
                     // Migrate legacy 'pendente' to 'marcado'
                     supabase.from('Marcacoes').update({ status: 'marcado' }).eq('id', item.id).then();
                 }
-                
+
                 return { ...item, status: currentStatus };
             });
 
             setAppointments(apts);
 
             // 3. Calculate Stats
-            const today = new Date().toISOString().split('T')[0];
-            const todayApts = apts.filter(a => a.data_hora.startsWith(today));
-            const pending = apts.filter(a => a.status === 'marcado' || a.status === 'pendente');
-            const completed = apts.filter(a => a.status === 'confirmado' || a.status === 'concluido'); // Assuming 'confirmado' roughly means confirmed/done contextually or user marks as done
+            const today = new Date();
+            const todayString = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
 
-            const revenue = completed.reduce((acc, curr) => {
-                const price = curr.servico?.preco || 0;
-                return acc + price;
-            }, 0);
+            const todayApts = apts.filter(a => {
+                if (!a.data_hora) return false;
+                const aptDate = new Date(a.data_hora);
+                const aptString = `${aptDate.getFullYear()}-${String(aptDate.getMonth() + 1).padStart(2, '0')}-${String(aptDate.getDate()).padStart(2, '0')}`;
+                return aptString === todayString;
+            });
+
+            const pending = apts.filter(a => a.status === 'marcado' || a.status === 'pendente');
+            const confirmed = apts.filter(a => a.status === 'confirmado');
 
             setStats({
                 todayCount: todayApts.length,
                 pendingCount: pending.length,
-                completedCount: completed.length,
-                totalRevenue: revenue
+                completedCount: confirmed.length,
+                totalRevenue: 0
             });
 
         } catch (error) {
@@ -130,7 +133,6 @@ const BarberDashboard: React.FC = () => {
         { title: 'Hoje', value: stats.todayCount, icon: CalendarIcon, color: 'text-blue-400', bg: 'from-blue-500/20 to-blue-600/5', border: 'border-blue-500/20' },
         { title: 'Marcados', value: stats.pendingCount, icon: AlertCircle, color: 'text-yellow-400', bg: 'from-yellow-500/20 to-yellow-600/5', border: 'border-yellow-500/20' },
         { title: 'Confirmados', value: stats.completedCount, icon: CheckCircle, color: 'text-emerald-400', bg: 'from-emerald-500/20 to-emerald-600/5', border: 'border-emerald-500/20' },
-        { title: 'Receita Est.', value: `${stats.totalRevenue}€`, icon: Scissors, color: 'text-purple-400', bg: 'from-purple-500/20 to-purple-600/5', border: 'border-purple-500/20' },
     ];
 
     const calendarEvents: CalendarEvent[] = appointments.map(apt => ({
@@ -178,7 +180,7 @@ const BarberDashboard: React.FC = () => {
                         }}
                         className="flex-1 min-w-[120px] py-2 bg-zinc-700/50 text-gray-300 rounded-lg hover:bg-zinc-600 transition-all font-bold flex items-center justify-center gap-2 border border-white/5"
                     >
-                        <Repeat className="w-4 h-4" /> Reagendar
+                        <Repeat className="w-4 h-4" /> Remarcar
                     </button>
                 )}
                 {(apt.status === 'marcado' || apt.status === 'pendente') && (
@@ -212,7 +214,7 @@ const BarberDashboard: React.FC = () => {
     const handleRescheduleSubmit = async () => {
         if (!newDate || !newTime) return alert('Por favor, selecione a nova data e hora.');
         const novaDataHora = `${newDate}T${newTime}:00`;
-        
+
         try {
             const { error } = await supabase
                 .from('Marcacoes')
@@ -220,15 +222,15 @@ const BarberDashboard: React.FC = () => {
                 .eq('id', reschedulingApt.id);
 
             if (error) throw error;
-            
+
             fetchData();
             setReschedulingApt(null);
             setNewDate('');
             setNewTime('');
             alert('Marcação reagendada com sucesso!');
         } catch (error) {
-            console.error('Erro ao reagendar:', error);
-            alert('Erro ao reagendar a marcação.');
+            console.error('Erro ao remarcar:', error);
+            alert('Erro ao remarcar a marcação.');
         }
     };
 
@@ -250,7 +252,7 @@ const BarberDashboard: React.FC = () => {
             </header>
 
             {/* Stats Grid */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+            <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
                 {statCards.map((stat, index) => (
                     <motion.div
                         key={index}
@@ -272,12 +274,12 @@ const BarberDashboard: React.FC = () => {
                 ))}
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <div className="w-full">
                 {/* Main Action Area: Appointments List */}
-                <motion.div variants={item} className="lg:col-span-2 space-y-8">
+                <motion.div variants={item} className="space-y-8">
                     <div className="bg-zinc-900/50 border border-white/5 rounded-2xl p-6 backdrop-blur-sm">
                         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
-                            <h2 className="text-xl font-bold text-white">Calendário de Agendamentos</h2>
+                            <h2 className="text-xl font-bold text-white">Calendário de Marcações</h2>
                         </div>
 
                         <Calendar
@@ -288,24 +290,6 @@ const BarberDashboard: React.FC = () => {
                             onDateChange={setCurrentDate}
                             renderActions={renderBarberActions}
                         />
-                    </div>
-                </motion.div>
-
-                {/* Quick Actions Sidebar */}
-                <motion.div variants={item} className="space-y-6">
-                    <div className="bg-zinc-900/50 border border-white/5 rounded-2xl p-6 backdrop-blur-sm">
-                        <h2 className="text-xl font-bold text-white mb-6">Informações</h2>
-                        <div className="space-y-4">
-                            <div className="p-4 rounded-xl bg-white/5 border border-white/5">
-                                <h3 className="font-bold text-white mb-1">Dica do Dia</h3>
-                                <p className="text-sm text-gray-400">Mantenha sua disponibilidade atualizada para evitar conflitos.</p>
-                            </div>
-
-                            <div className="p-4 rounded-xl bg-primary/10 border border-primary/20">
-                                <h3 className="font-bold text-primary mb-1">Suporte</h3>
-                                <p className="text-sm text-gray-400">Precisa de ajuda com o sistema? Contate o administrador.</p>
-                            </div>
-                        </div>
                     </div>
                 </motion.div>
             </div>
@@ -320,13 +304,13 @@ const BarberDashboard: React.FC = () => {
                             exit={{ opacity: 0, scale: 0.95 }}
                             className="bg-zinc-900 border border-white/10 rounded-2xl p-6 w-full max-w-sm shadow-2xl"
                         >
-                            <h3 className="text-xl font-bold text-white mb-4">Reagendar Marcação</h3>
+                            <h3 className="text-xl font-bold text-white mb-4">Remarcar Marcação</h3>
                             <p className="text-sm text-gray-400 mb-6">Selecione a nova data e hora para a marcação de <span className="text-white font-bold">{reschedulingApt.cliente?.nome || 'Cliente'}</span>.</p>
-                            
+
                             <div className="space-y-4 mb-6">
                                 <div>
                                     <label className="block text-sm text-gray-400 mb-1">Nova Data</label>
-                                    <input 
+                                    <input
                                         type="date"
                                         value={newDate}
                                         onChange={(e) => setNewDate(e.target.value)}
@@ -335,7 +319,7 @@ const BarberDashboard: React.FC = () => {
                                 </div>
                                 <div>
                                     <label className="block text-sm text-gray-400 mb-1">Nova Hora</label>
-                                    <input 
+                                    <input
                                         type="time"
                                         value={newTime}
                                         onChange={(e) => setNewTime(e.target.value)}

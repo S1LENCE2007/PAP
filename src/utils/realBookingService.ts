@@ -8,7 +8,6 @@ export interface TimeSlot {
 }
 
 const OPENING_HOUR = 9;
-const CLOSING_HOUR = 19;
 const SLOT_INTERVAL = 30; // minutes
 
 export const getRealAvailableSlots = async (
@@ -17,6 +16,18 @@ export const getRealAvailableSlots = async (
     barberId: string | 'any',
     excludeAppointmentId?: string
 ): Promise<TimeSlot[]> => {
+    // Determine closing time based on day of week
+    const dayOfWeek = new Date(dateStr).getDay();
+    
+    // Sunday (0): Closed, return no slots
+    if (dayOfWeek === 0) {
+        return [];
+    }
+
+    // Weekdays (1-5): close at 19:00 (so 18:30 is the last 30m slot)
+    // Saturdays (6): close at 18:30 (so 18:00 is the last 30m slot)
+    const closeHours = dayOfWeek === 6 ? 18 : 19;
+    const closeMinutes = dayOfWeek === 6 ? 30 : 0;
     // 1. Fetch necessary data
     // If specific barber, fetch only their appointments.
     // If 'any', fetch ALL appointments for that date.
@@ -31,24 +42,39 @@ export const getRealAvailableSlots = async (
             id,
             data_hora,
             barbeiro_id,
-            servicos (duracao)
+            servicos (nome, duracao)
         `)
         .gte('data_hora', startOfDay)
         .lte('data_hora', endOfDay)
         .neq('status', 'cancelado'); // Ignore cancelled
 
-    if (barberId !== 'any') {
-        query = query.eq('barbeiro_id', barberId);
-    }
-    
-    if (excludeAppointmentId) {
-        query = query.neq('id', excludeAppointmentId);
+    // Wait, we need to check if there is a BLOQUEIO_DIA for ANY barber on this date.
+    // So we fetch all appointments for this date first.
+    const { data: allAppointmentsForDate, error: allAptsError } = await query;
+
+    if (allAptsError) {
+        console.error('Error fetching appointments:', allAptsError);
+        return [];
     }
 
-    const { data: appointments, error } = await query;
-    if (error) {
-        console.error('Error fetching appointments:', error);
-        return [];
+    // Check if the day is blocked
+    const isDayBlocked = allAppointmentsForDate?.some(apt => {
+        const servicoData = Array.isArray(apt.servicos) ? apt.servicos[0] : apt.servicos;
+        return (servicoData as any)?.nome === 'BLOQUEIO_DIA';
+    });
+
+    if (isDayBlocked) {
+        return []; // Whole day is blocked, no slots available
+    }
+
+    // Now filter appointments for the specific barber if needed
+    let appointments = allAppointmentsForDate;
+    if (barberId !== 'any') {
+        appointments = appointments?.filter(apt => apt.barbeiro_id === barberId);
+    }
+
+    if (excludeAppointmentId) {
+        appointments = appointments?.filter(apt => apt.id !== excludeAppointmentId);
     }
 
     // If 'any', we also need the list of all active barbers to check them one by one
@@ -66,7 +92,7 @@ export const getRealAvailableSlots = async (
     // 2. Generate all potential slots
     const slots: TimeSlot[] = [];
     let currentTime = set(new Date(dateStr), { hours: OPENING_HOUR, minutes: 0, seconds: 0 });
-    const closeTime = set(new Date(dateStr), { hours: CLOSING_HOUR, minutes: 0, seconds: 0 });
+    const closeTime = set(new Date(dateStr), { hours: closeHours, minutes: closeMinutes, seconds: 0 });
 
     // Helper to check overlap
     const isBarberBusy = (bId: string, slotStart: Date, slotEnd: Date) => {
