@@ -10,7 +10,7 @@ import {
 import PageHeader from '../components/layout/PageHeader';
 import { clsx } from 'clsx';
 import { getGoogleCalendarUrl } from '../utils/calendar';
-
+import ImageUpload from '../components/ui/ImageUpload';
 interface Appointment {
     id: string;
     data_hora: string;
@@ -38,7 +38,8 @@ const Profile: React.FC = () => {
     // Profile Form State
     const [profileData, setProfileData] = useState({
         nome: '',
-        telemovel: ''
+        telemovel: '',
+        avatar_url: ''
     });
 
     // Password State
@@ -58,7 +59,8 @@ const Profile: React.FC = () => {
         if (user) {
             setProfileData({
                 nome: user.user_metadata?.nome || '',
-                telemovel: user.user_metadata?.telemovel || ''
+                telemovel: user.user_metadata?.telemovel || '',
+                avatar_url: user.user_metadata?.avatar_url || ''
             });
         }
     }, [user]);
@@ -173,7 +175,8 @@ const Profile: React.FC = () => {
             await supabase.auth.updateUser({
                 data: {
                     nome: profileData.nome,
-                    telemovel: profileData.telemovel
+                    telemovel: profileData.telemovel,
+                    avatar_url: profileData.avatar_url
                 }
             });
 
@@ -221,9 +224,9 @@ const Profile: React.FC = () => {
 
     const handleReschedule = (apt: any) => {
         navigate('/agendar', {
-            state: { 
-                serviceName: apt.servicos.nome, 
-                barberName: apt.barbeiros.nome, 
+            state: {
+                serviceName: apt.servicos.nome,
+                barberName: apt.barbeiros.nome,
                 editAppointmentId: apt.id,
                 barberId: apt.barbeiros.id,
                 serviceId: apt.servicos.id,
@@ -268,7 +271,11 @@ const Profile: React.FC = () => {
                                 <div className="relative w-32 h-32 mb-4">
                                     <div className="absolute inset-0 bg-gradient-to-br from-primary to-yellow-600 rounded-full blur opacity-20"></div>
                                     <div className="relative w-full h-full bg-gray-800 rounded-full border-2 border-primary/50 flex items-center justify-center overflow-hidden">
-                                        <User className="w-16 h-16 text-gray-400" />
+                                        {user?.user_metadata?.avatar_url ? (
+                                            <img src={user.user_metadata.avatar_url} alt="Profile" className="w-full h-full object-cover" />
+                                        ) : (
+                                            <User className="w-16 h-16 text-gray-400" />
+                                        )}
                                     </div>
                                     <div className="absolute bottom-1 right-1 bg-dark border border-gray-700 rounded-full p-1.5" title="Seu Cargo">
                                         <Shield className="w-4 h-4 text-primary" />
@@ -327,7 +334,6 @@ const Profile: React.FC = () => {
                         <div className="flex items-center gap-6 mb-8 border-b border-white/5 overflow-x-auto">
                             {[
                                 { id: 'upcoming', label: 'Próximos' },
-                                { id: 'history', label: 'Histórico' },
                                 { id: 'orders', label: 'Encomendas' },
                                 { id: 'settings', label: 'Definições' }
                             ].map(tab => (
@@ -396,6 +402,15 @@ const Profile: React.FC = () => {
                                                     />
                                                     <Lock className="w-4 h-4 text-gray-600 absolute left-3 top-3.5" />
                                                 </div>
+                                            </div>
+                                            <div className="space-y-2 md:col-span-2 pt-2">
+                                                <ImageUpload
+                                                    value={profileData.avatar_url}
+                                                    onChange={(url) => setProfileData({ ...profileData, avatar_url: url })}
+                                                    bucket="imagens"
+                                                    folder="perfis"
+                                                    label="Foto de Perfil"
+                                                />
                                             </div>
                                         </div>
                                         <div className="flex justify-end pt-2">
@@ -573,8 +588,8 @@ const Profile: React.FC = () => {
                                                         <div className="flex items-center gap-2 mt-2 opacity-0 group-hover:opacity-100 transition-opacity">
                                                             <a
                                                                 href={getGoogleCalendarUrl(
-                                                                    `Corte - ${apt.servicos?.nome}`, 
-                                                                    apt.data_hora, 
+                                                                    `Corte - ${apt.servicos?.nome}`,
+                                                                    apt.data_hora,
                                                                     apt.servicos?.duracao || 60
                                                                 )}
                                                                 target="_blank"

@@ -81,7 +81,7 @@ const Booking: React.FC = () => {
                 if (state) {
                     if (state.editAppointmentId) {
                         setEditAppointmentId(state.editAppointmentId);
-                        
+
                         const mockBarber = {
                             id: state.barberId || '',
                             nome: state.barberName || '',
@@ -94,7 +94,7 @@ const Booking: React.FC = () => {
                             preco: state.servicePreco || 0,
                             duracao: state.serviceDuracao || 30
                         };
-                        
+
                         setSelectedBarber(mockBarber);
                         setSelectedService(mockService);
                         setStep(3);
@@ -184,7 +184,7 @@ const Booking: React.FC = () => {
             if (editAppointmentId) {
                 const { error } = await supabase
                     .from('Marcacoes')
-                    .update({ 
+                    .update({
                         barbeiro_id: finalBarberId,
                         servico_id: selectedService.id,
                         data_hora: dateObj.toISOString(),
@@ -471,8 +471,8 @@ const Booking: React.FC = () => {
                                                                             onClick={() => handleTimeSelect(slot.time, slot.barberId)}
                                                                             className={clsx(
                                                                                 "py-2 px-1 rounded-lg text-sm font-medium transition-all duration-200 relative overflow-hidden",
-                                                                                selectedTime === slot.time 
-                                                                                    ? "bg-primary text-black font-bold shadow-lg shadow-primary/20 scale-105" 
+                                                                                selectedTime === slot.time
+                                                                                    ? "bg-primary text-black font-bold shadow-lg shadow-primary/20 scale-105"
                                                                                     : "bg-card-bg border border-gray-700 text-gray-300 hover:border-primary/50 hover:text-white"
                                                                             )}
                                                                         >
@@ -497,8 +497,8 @@ const Booking: React.FC = () => {
                                                                             onClick={() => handleTimeSelect(slot.time, slot.barberId)}
                                                                             className={clsx(
                                                                                 "py-2 px-1 rounded-lg text-sm font-medium transition-all duration-200 relative overflow-hidden",
-                                                                                selectedTime === slot.time 
-                                                                                    ? "bg-primary text-black font-bold shadow-lg shadow-primary/20 scale-105" 
+                                                                                selectedTime === slot.time
+                                                                                    ? "bg-primary text-black font-bold shadow-lg shadow-primary/20 scale-105"
                                                                                     : "bg-card-bg border border-gray-700 text-gray-300 hover:border-primary/50 hover:text-white"
                                                                             )}
                                                                         >

@@ -1,21 +1,26 @@
 import React, { useRef, useState } from 'react';
 import { Upload, X, Image as ImageIcon, Loader } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { supabase } from '../../utils/supabase';
 
 interface ImageUploadProps {
     value?: string;
-    onChange: (base64: string) => void;
+    onChange: (url: string) => void;
     label?: string;
     className?: string;
     placeholder?: string;
+    bucket?: string; // Nome do bucket no Supabase Storage
+    folder?: string; // Pasta dentro do bucket
 }
 
-const ImageUpload: React.FC<ImageUploadProps> = ({ 
-    value, 
-    onChange, 
-    label = "Imagem", 
+const ImageUpload: React.FC<ImageUploadProps> = ({
+    value,
+    onChange,
+    label = "Imagem",
     className = "",
-    placeholder = "Clique para carregar imagem"
+    placeholder = "Clique para carregar imagem",
+    bucket = "imagens",
+    folder = "produtos"
 }) => {
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [loading, setLoading] = useState(false);
@@ -31,13 +36,13 @@ const ImageUpload: React.FC<ImageUploadProps> = ({
         setError(null);
         if (!file) return;
 
-        // Validate file type
+        // Validar tipo de ficheiro
         if (!file.type.startsWith('image/')) {
             setError('Por favor, selecione um arquivo de imagem válido.');
             return;
         }
 
-        // Validate file size (max 5MB initial check, we will compress it)
+        // Limitar tamanho a 5MB
         if (file.size > 5 * 1024 * 1024) {
             setError('A imagem é muito grande. O tamanho máximo é 5MB.');
             return;
@@ -46,63 +51,60 @@ const ImageUpload: React.FC<ImageUploadProps> = ({
         setLoading(true);
 
         try {
-            const compressedBase64 = await compressImage(file);
-            onChange(compressedBase64);
+            // Gerar nome único para o ficheiro para evitar colisões
+            const fileExt = file.name.split('.').pop();
+            const fileName = `${folder}/${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
+
+            // Fazer upload para o Supabase Storage
+            const { error: uploadError } = await supabase.storage
+                .from(bucket)
+                .upload(fileName, file, {
+                    cacheControl: '3600',
+                    upsert: false
+                });
+
+            if (uploadError) {
+                // Se o bucket não existe, tentar criar ou mostrar erro claro
+                if (uploadError.message.includes('Bucket not found')) {
+                    setError('Bucket de armazenamento não encontrado. Cria o bucket "imagens" no Supabase Storage.');
+                } else {
+                    setError(`Erro no upload: ${uploadError.message}`);
+                }
+                return;
+            }
+
+            // Obter a URL pública do ficheiro
+            const { data } = supabase.storage
+                .from(bucket)
+                .getPublicUrl(fileName);
+
+            onChange(data.publicUrl);
         } catch (err) {
-            setError('Erro ao processar imagem.');
+            setError('Erro ao fazer upload da imagem.');
             console.error(err);
         } finally {
             setLoading(false);
+            // Limpar o input para permitir carregar o mesmo ficheiro novamente
+            if (fileInputRef.current) fileInputRef.current.value = '';
         }
     };
 
-    const compressImage = (file: File): Promise<string> => {
-        return new Promise((resolve, reject) => {
-            const reader = new FileReader();
-            reader.readAsDataURL(file);
-            reader.onload = (event) => {
-                const img = new Image();
-                img.src = event.target?.result as string;
-                img.onload = () => {
-                    const canvas = document.createElement('canvas');
-                    const ctx = canvas.getContext('2d');
-                    
-                    if (!ctx) {
-                        reject(new Error('Could not get canvas context'));
-                        return;
-                    }
-
-                    // Calculate new dimensions (max 800px width/height)
-                    const MAX_WIDTH = 800;
-                    const MAX_HEIGHT = 800;
-                    let width = img.width;
-                    let height = img.height;
-
-                    if (width > height) {
-                        if (width > MAX_WIDTH) {
-                            height *= MAX_WIDTH / width;
-                            width = MAX_WIDTH;
-                        }
-                    } else {
-                        if (height > MAX_HEIGHT) {
-                            width *= MAX_HEIGHT / height;
-                            height = MAX_HEIGHT;
-                        }
-                    }
-
-                    canvas.width = width;
-                    canvas.height = height;
-
-                    ctx.drawImage(img, 0, 0, width, height);
-
-                    // Compress to JPEG with 0.8 quality
-                    const base64 = canvas.toDataURL('image/jpeg', 0.8);
-                    resolve(base64);
-                };
-                img.onerror = (err) => reject(err);
-            };
-            reader.onerror = (err) => reject(err);
-        });
+    const handleRemove = async (e: React.MouseEvent) => {
+        e.stopPropagation();
+        // Se o valor atual é uma URL do Supabase Storage, apagar o ficheiro
+        if (value && value.includes('supabase')) {
+            try {
+                // Extrair o caminho do ficheiro a partir da URL pública
+                const urlParts = value.split(`/${bucket}/`);
+                if (urlParts.length > 1) {
+                    const filePath = urlParts[1];
+                    await supabase.storage.from(bucket).remove([filePath]);
+                }
+            } catch (err) {
+                console.error('Erro ao remover imagem do Storage:', err);
+            }
+        }
+        onChange("");
     };
 
     const handleDrag = (e: React.DragEvent) => {
@@ -127,8 +129,8 @@ const ImageUpload: React.FC<ImageUploadProps> = ({
     return (
         <div className={`space-y-2 ${className}`}>
             <label className="text-sm text-gray-400 font-medium ml-1 block">{label}</label>
-            
-            <div 
+
+            <div
                 className={`relative group cursor-pointer transition-all duration-200 border-2 border-dashed rounded-xl overflow-hidden
                     ${dragActive ? 'border-primary bg-primary/10' : 'border-white/10 hover:border-primary/50 bg-black/40'}
                     ${error ? 'border-red-500/50' : ''}
@@ -139,28 +141,28 @@ const ImageUpload: React.FC<ImageUploadProps> = ({
                 onDrop={handleDrop}
                 onClick={() => fileInputRef.current?.click()}
             >
-                <input 
-                    type="file" 
+                <input
+                    type="file"
                     ref={fileInputRef}
-                    className="hidden" 
+                    className="hidden"
                     accept="image/*"
                     onChange={handleFileChange}
                 />
 
                 <AnimatePresence mode="wait">
                     {loading ? (
-                        <motion.div 
-                            initial={{ opacity: 0 }} 
-                            animate={{ opacity: 1 }} 
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
                             exit={{ opacity: 0 }}
                             className="h-48 flex flex-col items-center justify-center gap-3 text-primary"
                         >
                             <Loader className="w-8 h-8 animate-spin" />
-                            <span className="text-sm font-medium">Processando imagem...</span>
+                            <span className="text-sm font-medium">A fazer upload...</span>
                         </motion.div>
                     ) : value ? (
-                        <motion.div 
-                            initial={{ opacity: 0 }} 
+                        <motion.div
+                            initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
                             exit={{ opacity: 0 }}
                             className="relative h-48 w-full group-hover:opacity-90 transition-opacity"
@@ -171,11 +173,8 @@ const ImageUpload: React.FC<ImageUploadProps> = ({
                                     <Upload className="w-4 h-4" /> Alterar
                                 </span>
                             </div>
-                            <button 
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    onChange("");
-                                }}
+                            <button
+                                onClick={handleRemove}
                                 className="absolute top-2 right-2 p-1.5 bg-red-500/80 text-white rounded-lg hover:bg-red-500 transition-colors shadow-lg"
                                 title="Remover imagem"
                             >
@@ -183,8 +182,8 @@ const ImageUpload: React.FC<ImageUploadProps> = ({
                             </button>
                         </motion.div>
                     ) : (
-                        <motion.div 
-                            initial={{ opacity: 0 }} 
+                        <motion.div
+                            initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
                             exit={{ opacity: 0 }}
                             className="h-48 flex flex-col items-center justify-center gap-3 text-gray-500 hover:text-primary transition-colors p-6 text-center"
@@ -194,7 +193,7 @@ const ImageUpload: React.FC<ImageUploadProps> = ({
                             </div>
                             <div className="space-y-1">
                                 <span className="block font-medium text-sm">{placeholder}</span>
-                                <span className="block text-xs opacity-60">ou arraste para aqui</span>
+                                <span className="block text-xs opacity-60">ou arraste para aqui • máx. 5MB</span>
                             </div>
                         </motion.div>
                     )}

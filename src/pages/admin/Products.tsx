@@ -218,7 +218,9 @@ const AdminProducts: React.FC = () => {
                                     <div className="pt-2">
                                         <ImageUpload
                                             value={formData.imagem_url}
-                                            onChange={(base64) => setFormData({ ...formData, imagem_url: base64 })}
+                                            onChange={(url) => setFormData({ ...formData, imagem_url: url })}
+                                            bucket="imagens"
+                                            folder="produtos"
                                             label="Imagem do Produto"
                                         />
                                     </div>

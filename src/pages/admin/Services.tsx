@@ -250,9 +250,11 @@ const AdminServices: React.FC = () => {
                                 </div>
                                 <ImageUpload
                                     value={currentService.imagem_url}
-                                    onChange={(base64) => setCurrentService({ ...currentService, imagem_url: base64 })}
+                                    onChange={(url) => setCurrentService({ ...currentService, imagem_url: url })}
                                     label="Imagem do Serviço (Opcional)"
                                     placeholder="Clique para carregar a imagem do serviço"
+                                    bucket="imagens"
+                                    folder="servicos"
                                 />
                             </div>
 

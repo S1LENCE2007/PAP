@@ -156,10 +156,12 @@ const AdminGallery: React.FC = () => {
                                     <div className="bg-black/20 p-4 rounded-2xl border border-white/5">
                                         <ImageUpload
                                             value={formData.url}
-                                            onChange={(base64) => setFormData({ ...formData, url: base64 })}
+                                            onChange={(url) => setFormData({ ...formData, url: url })}
                                             label=""
                                             placeholder="Clique para carregar ou arraste"
                                             className="h-64"
+                                            bucket="imagens"
+                                            folder="galeria"
                                         />
                                     </div>
                                 </div>

@@ -208,9 +208,11 @@ const CreateUser: React.FC = () => {
                                     <div className="space-y-2">
                                         <ImageUpload
                                             value={formData.foto_url}
-                                            onChange={(base64) => setFormData({ ...formData, foto_url: base64 })}
+                                            onChange={(url) => setFormData({ ...formData, foto_url: url })}
                                             label="Foto de Perfil"
                                             placeholder="Carregar foto de perfil"
+                                            bucket="imagens"
+                                            folder="perfis"
                                         />
                                     </div>
 
