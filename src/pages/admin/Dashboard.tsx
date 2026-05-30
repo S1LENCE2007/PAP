@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Users, Calendar, ShoppingBag, Loader, ArrowRight, Clock, Star } from 'lucide-react';
+import { Users, Calendar, ShoppingBag, Loader, ArrowRight, Clock } from 'lucide-react';
 import { supabase } from '../../utils/supabase';
 import { motion } from 'framer-motion';
 import { useNavigate, Link } from 'react-router-dom';

@@ -9,7 +9,6 @@ import { supabase } from '../utils/supabase';
 
 const Services: React.FC = () => {
     const [categories, setCategories] = React.useState<{ title: string, items: any[] }[]>([]);
-    const [loading, setLoading] = React.useState(true);
 
     React.useEffect(() => {
         const fetchServices = async () => {
@@ -45,8 +44,6 @@ const Services: React.FC = () => {
                 }
             } catch (error) {
                 console.error('Erro ao buscar serviços:', error);
-            } finally {
-                setLoading(false);
             }
         };
 
