@@ -154,8 +154,8 @@ const AdminDashboard: React.FC = () => {
                                             </div>
                                             <span className={`px-2 py-0.5 rounded text-xs font-bold uppercase tracking-wider
                                                 ${apt.status === 'confirmado' ? 'bg-blue-500/20 text-blue-400' :
-                                                    (apt.status === 'marcado' || apt.status === 'pendente') ? 'bg-yellow-500/20 text-yellow-400' : 
-                                                    apt.status === 'concluido' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-red-500/20 text-red-400'
+                                                    (apt.status === 'marcado' || apt.status === 'pendente') ? 'bg-yellow-500/20 text-yellow-400' :
+                                                        apt.status === 'concluido' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-red-500/20 text-red-400'
                                                 }`}>
                                                 {apt.status === 'pendente' ? 'marcado' : apt.status}
                                             </span>

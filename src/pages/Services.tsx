@@ -88,10 +88,10 @@ const Services: React.FC = () => {
                                 >
                                     {service.imagem_url && (
                                         <div className="w-full h-48 rounded-xl overflow-hidden mb-6 bg-black/40 relative">
-                                            <img 
-                                                src={service.imagem_url} 
-                                                alt={service.name} 
-                                                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" 
+                                            <img
+                                                src={service.imagem_url}
+                                                alt={service.name}
+                                                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                                             />
                                         </div>
                                     )}
