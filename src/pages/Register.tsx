@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { supabase } from '../utils/supabase';
 import { Scissors, User, Mail, Lock, Phone, Loader, Eye, EyeOff } from 'lucide-react';
+import ImageUpload from '../components/ui/ImageUpload';
 
 const Register: React.FC = () => {
     const [formData, setFormData] = useState({
@@ -10,7 +11,8 @@ const Register: React.FC = () => {
         email: '',
         phone: '',
         password: '',
-        confirmPassword: ''
+        confirmPassword: '',
+        avatar_url: ''
     });
     const [loading, setLoading] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
@@ -46,7 +48,8 @@ const Register: React.FC = () => {
                 options: {
                     data: {
                         nome: formData.name,
-                        telemovel: formData.phone
+                        telemovel: formData.phone,
+                        avatar_url: formData.avatar_url
                     }
                 }
             });
@@ -75,6 +78,7 @@ const Register: React.FC = () => {
                         nome: formData.name,
                         email: formData.email,
                         telemovel: formData.phone,
+                        avatar_url: formData.avatar_url,
                         role: 'client' // Default role
                     }]);
 
@@ -186,6 +190,16 @@ const Register: React.FC = () => {
                                 placeholder="seu@email.com"
                             />
                         </div>
+                    </div>
+
+                    <div className="pt-2">
+                        <ImageUpload
+                            value={formData.avatar_url}
+                            onChange={(url) => setFormData({ ...formData, avatar_url: url })}
+                            bucket="imagens"
+                            folder="perfis"
+                            label="Foto de Perfil (Opcional)"
+                        />
                     </div>
 
                     <div>

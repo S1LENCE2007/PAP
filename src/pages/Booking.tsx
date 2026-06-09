@@ -1,3 +1,4 @@
+import toast from 'react-hot-toast';
 import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -172,7 +173,7 @@ const Booking: React.FC = () => {
         const finalBarberId = selectedBarber?.id === 'any' ? selectedSlotBarberId : selectedBarber?.id;
 
         if (!user || !finalBarberId || !selectedService || !selectedDate || !selectedTime) {
-            alert('Por favor, preencha todos os campos.');
+            toast.error('Por favor, preencha todos os campos.');
             return;
         }
 
@@ -210,9 +211,10 @@ const Booking: React.FC = () => {
             }
 
             setStep(5);
+            toast.success(editAppointmentId ? 'Marcação remarcada com sucesso!' : 'Marcação efetuada com sucesso!');
         } catch (error) {
             console.error('Erro ao agendar:', error);
-            alert('Ocorreu um erro ao realizar o marcação. Por favor, tente novamente.');
+            toast.error('Ocorreu um erro ao realizar o marcação. Por favor, tente novamente.');
         } finally {
             setIsSubmitting(false);
         }

@@ -1,3 +1,4 @@
+import toast from 'react-hot-toast';
 import React, { createContext, useContext, useState, useEffect } from 'react';
 
 export interface Product {
@@ -7,6 +8,7 @@ export interface Product {
     imagem_url: string;
     categoria: string;
     stock: number;
+    descricao?: string;
 }
 
 export interface CartItem extends Product {
@@ -40,7 +42,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
             const existing = prev.find(item => item.id === product.id);
             if (existing) {
                 if (existing.quantity >= product.stock) {
-                    alert('Quantidade máxima em stock atingida!');
+                    toast.error('Quantidade máxima em stock atingida!');
                     return prev;
                 }
                 return prev.map(item =>
@@ -50,7 +52,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 );
             }
             if (product.stock < 1) {
-                alert('Produto fora de stock!');
+                toast.error('Produto fora de stock!');
                 return prev;
             }
             return [...prev, { ...product, quantity: 1 }];
@@ -66,7 +68,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setItems(prev => {
             const item = prev.find(i => i.id === productId);
             if (item && quantity > item.stock) {
-                alert('Quantidade indisponível em stock!');
+                toast.error('Quantidade indisponível em stock!');
                 return prev;
             }
             return prev.map(item =>

@@ -1,3 +1,4 @@
+import toast from 'react-hot-toast';
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
@@ -25,13 +26,13 @@ const CreateUser: React.FC = () => {
         setLoading(true);
 
         if (!formData.password || formData.password.length < 6) {
-            alert('A palavra-passe deve ter pelo menos 6 caracteres.');
+            toast('A palavra-passe deve ter pelo menos 6 caracteres.');
             setLoading(false);
             return;
         }
 
         if (formData.password !== formData.confirmPassword) {
-            alert('As palavras-passe não coincidem.');
+            toast.error('As palavras-passe não coincidem.');
             setLoading(false);
             return;
         }
@@ -49,7 +50,7 @@ const CreateUser: React.FC = () => {
             if (error) throw error;
 
             // Success animation or redirect
-            alert('Utilizador criado com sucesso!');
+            toast.success('Utilizador criado com sucesso!');
             navigate('/admin/gerenciar');
 
         } catch (error: any) {
@@ -57,9 +58,9 @@ const CreateUser: React.FC = () => {
 
             // Handle specific error for duplicate email
             if (error.message?.includes('duplicate key') || error.message?.includes('users_email_partial_key')) {
-                alert('Erro: Este endereço de email já está registado. Por favor, utilize outro email.');
+                toast.error('Erro: Este endereço de email já está registado. Por favor, utilize outro email.');
             } else {
-                alert('Erro ao criar conta: ' + (error.message || 'Erro desconhecido'));
+                toast.error('Erro ao criar conta: ' + (error.message || 'Erro desconhecido'));
             }
         } finally {
             setLoading(false);

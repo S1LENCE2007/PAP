@@ -1,59 +1,24 @@
 import React, { useEffect, useState } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../utils/supabase';
-import {
-    User, Clock, LogOut, Loader, X, Repeat,
-    Edit2, Save, Shield, Scissors, History, Mail, Phone, Lock, ShoppingBag, QrCode, Calendar as CalendarIcon
-} from 'lucide-react';
+import { User, Save, Shield, Lock, Mail, Phone } from 'lucide-react';
 import PageHeader from '../components/layout/PageHeader';
-import { clsx } from 'clsx';
-import { getGoogleCalendarUrl } from '../utils/calendar';
 import ImageUpload from '../components/ui/ImageUpload';
-interface Appointment {
-    id: string;
-    data_hora: string;
-    status: string;
-    servicos: {
-        nome: string;
-        preco: number;
-        duracao: number;
-    };
-    barbeiros: {
-        nome: string;
-    };
-}
+import toast from 'react-hot-toast';
 
 const Profile: React.FC = () => {
-    const { user, role, signOut } = useAuth();
-    const navigate = useNavigate();
-    const location = useLocation();
-    const [appointments, setAppointments] = useState<Appointment[]>([]);
-    const [orders, setOrders] = useState<any[]>([]);
-    const [loading, setLoading] = useState(true);
-    const [ordersLoading, setOrdersLoading] = useState(false);
-    const [activeTab, setActiveTab] = useState<'upcoming' | 'history' | 'orders' | 'settings'>('upcoming');
-
-    // Profile Form State
+    const { user, role } = useAuth();
     const [profileData, setProfileData] = useState({
         nome: '',
         telemovel: '',
         avatar_url: ''
     });
 
-    // Password State
     const [passwords, setPasswords] = useState({
         new: '',
         confirm: ''
     });
-
-    useEffect(() => {
-        if (location.state?.editMode) {
-            setActiveTab('settings');
-            window.history.replaceState({}, document.title);
-        }
-    }, [location]);
 
     useEffect(() => {
         if (user) {
@@ -65,100 +30,6 @@ const Profile: React.FC = () => {
         }
     }, [user]);
 
-    useEffect(() => {
-        const fetchAppointments = async () => {
-            if (!user) return;
-
-            try {
-                const { data, error } = await supabase
-                    .from('Marcacoes')
-                    .select(`
-                        id,
-                        data_hora,
-                        status,
-                        barbeiro_id,
-                        servicos (id, nome, preco, duracao),
-                        barbeiros (id, nome)
-                    `)
-                    .eq('cliente_id', user.id)
-                    .order('data_hora', { ascending: false });
-
-                if (error) throw error;
-
-                type SectionData = { id?: string; nome: string; preco?: number; duracao?: number };
-
-                interface AppointmentData {
-                    id: string;
-                    data_hora: string;
-                    status: string;
-                    barbeiro_id: string;
-                    servicos: SectionData | SectionData[];
-                    barbeiros: SectionData | SectionData[];
-                }
-                const now = new Date();
-                const formattedData = (data as unknown as AppointmentData[]).map(item => {
-                    const servicos = Array.isArray(item.servicos) ? item.servicos[0] : item.servicos;
-                    const barbeiros = Array.isArray(item.barbeiros) ? item.barbeiros[0] : item.barbeiros;
-
-                    let currentStatus = item.status === 'pendente' ? 'marcado' : item.status;
-                    const aptDate = new Date(item.data_hora);
-                    const duracao = servicos && typeof servicos.duracao === 'number' ? servicos.duracao : 30;
-                    const endDate = new Date(aptDate.getTime() + (duracao * 60000));
-
-                    if ((currentStatus === 'marcado' || currentStatus === 'confirmado') && now > endDate) {
-                        currentStatus = 'concluido';
-                        supabase.from('Marcacoes').update({ status: 'concluido' }).eq('id', item.id).then();
-                    } else if (item.status === 'pendente') {
-                        supabase.from('Marcacoes').update({ status: 'marcado' }).eq('id', item.id).then();
-                    }
-
-                    return {
-                        ...item,
-                        status: currentStatus,
-                        servicos: servicos ? {
-                            id: servicos.id,
-                            nome: servicos.nome,
-                            preco: servicos.preco || 0,
-                            duracao: servicos.duracao || 0
-                        } : { id: '', nome: 'Serviço Removido', preco: 0, duracao: 0 },
-                        barbeiros: barbeiros ? {
-                            id: barbeiros.id || item.barbeiro_id,
-                            nome: barbeiros.nome
-                        } : { id: item.barbeiro_id || '', nome: 'Barbeiro Removido' }
-                    };
-                });
-
-                setAppointments(formattedData);
-            } catch (error) {
-                console.error('Erro ao buscar marcações:', error);
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        const fetchOrders = async () => {
-            if (!user) return;
-            setOrdersLoading(true);
-            try {
-                const { data, error } = await supabase
-                    .from('encomendas')
-                    .select('*')
-                    .eq('cliente_id', user.id)
-                    .order('created_at', { ascending: false });
-
-                if (error) throw error;
-                setOrders(data || []);
-            } catch (error) {
-                console.error('Erro ao buscar encomendas:', error);
-            } finally {
-                setOrdersLoading(false);
-            }
-        };
-
-        fetchAppointments();
-        fetchOrders();
-    }, [user]);
-
     const handleProfileUpdate = async (e: React.FormEvent) => {
         e.preventDefault();
         try {
@@ -166,7 +37,8 @@ const Profile: React.FC = () => {
                 .from('perfis')
                 .update({
                     nome: profileData.nome,
-                    telemovel: profileData.telemovel
+                    telemovel: profileData.telemovel,
+                    avatar_url: profileData.avatar_url
                 })
                 .eq('id', user?.id);
 
@@ -180,18 +52,18 @@ const Profile: React.FC = () => {
                 }
             });
 
-            alert('Perfil atualizado com sucesso!');
+            toast.success('Perfil atualizado com sucesso!');
             window.location.reload();
         } catch (error) {
             console.error('Erro ao atualizar perfil:', error);
-            alert('Erro ao atualizar perfil.');
+            toast.error('Erro ao atualizar perfil.');
         }
     };
 
     const handlePasswordUpdate = async (e: React.FormEvent) => {
         e.preventDefault();
         if (passwords.new !== passwords.confirm) {
-            alert('As palavras-passe não coincidem.');
+            toast.error('As palavras-passe não coincidem.');
             return;
         }
 
@@ -202,445 +74,167 @@ const Profile: React.FC = () => {
 
             if (error) throw error;
 
-            alert('Palavra-passe alterada com sucesso!');
+            toast.success('Palavra-passe alterada com sucesso!');
             setPasswords({ new: '', confirm: '' });
         } catch (error) {
             console.error('Erro ao alterar palavra-passe:', error);
-            alert('Erro ao alterar palavra-passe. Tente novamente.');
+            toast.error('Erro ao alterar palavra-passe. Tente novamente.');
         }
     };
-
-    const handleCancel = async (id: string) => {
-        if (!confirm('Tem certeza que deseja cancelar este marcação?')) return;
-        try {
-            const { error } = await supabase.from('Marcacoes').update({ status: 'cancelado' }).eq('id', id);
-            if (error) throw error;
-            setAppointments(prev => prev.map(apt => apt.id === id ? { ...apt, status: 'cancelado' } : apt));
-        } catch (error) {
-            console.error('Erro ao cancelar:', error);
-            alert('Erro ao cancelar marcação.');
-        }
-    };
-
-    const handleReschedule = (apt: any) => {
-        navigate('/agendar', {
-            state: {
-                serviceName: apt.servicos.nome,
-                barberName: apt.barbeiros.nome,
-                editAppointmentId: apt.id,
-                barberId: apt.barbeiros.id,
-                serviceId: apt.servicos.id,
-                serviceDuracao: apt.servicos.duracao,
-                servicePreco: apt.servicos.preco
-            }
-        });
-    };
-
-    const formatDate = (dateString: string) => {
-        return new Date(dateString).toLocaleDateString('pt-PT', { day: '2-digit', month: 'long', year: 'numeric' });
-    };
-
-    const formatTime = (dateString: string) => {
-        return new Date(dateString).toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' });
-    };
-
-    const upcomingAppointments = appointments.filter(apt => apt.status === 'marcado' || apt.status === 'confirmado');
-    const pastAppointments = appointments.filter(apt => apt.status === 'concluido' || apt.status === 'cancelado');
-
-    const displayAppointments = activeTab === 'upcoming' ? upcomingAppointments : pastAppointments;
 
     return (
-        <div className="min-h-screen bg-dark-bg text-gray-100">
+        <div className="min-h-screen bg-dark-bg text-gray-100 pb-20">
             <PageHeader
-                title={<>MEU <span className="text-primary">DASHBOARD</span></>}
-                subtitle="Faça a gestão do seu perfil, marcações e encomendas."
+                title={<>MEU <span className="text-primary">PERFIL</span></>}
+                subtitle="Faça a gestão das suas informações pessoais e segurança da conta."
                 backgroundImage="https://images.unsplash.com/photo-1621605815971-fbc98d665033?q=80&w=2070&auto=format&fit=crop"
             />
 
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-
-                    {/* LEFT COLUMN: User Profile Card */}
+            <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12 -mt-10 relative z-10">
+                <div className="space-y-8">
+                    {/* User Profile Overview */}
                     <motion.div
-                        initial={{ opacity: 0, x: -20 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        className="lg:col-span-1"
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="bg-zinc-900 border border-zinc-800 rounded-3xl p-8 flex flex-col md:flex-row items-center gap-8 shadow-2xl"
                     >
-                        <div className="bg-dark/50 backdrop-blur-md border border-white/5 rounded-2xl p-6 sticky top-24 shadow-xl">
-                            <div className="flex flex-col items-center text-center mb-6">
-                                <div className="relative w-32 h-32 mb-4">
-                                    <div className="absolute inset-0 bg-gradient-to-br from-primary to-yellow-600 rounded-full blur opacity-20"></div>
-                                    <div className="relative w-full h-full bg-gray-800 rounded-full border-2 border-primary/50 flex items-center justify-center overflow-hidden">
-                                        {user?.user_metadata?.avatar_url ? (
-                                            <img src={user.user_metadata.avatar_url} alt="Profile" className="w-full h-full object-cover" />
-                                        ) : (
-                                            <User className="w-16 h-16 text-gray-400" />
-                                        )}
-                                    </div>
-                                    <div className="absolute bottom-1 right-1 bg-dark border border-gray-700 rounded-full p-1.5" title="Seu Cargo">
-                                        <Shield className="w-4 h-4 text-primary" />
-                                    </div>
-                                </div>
-
-                                <h2 className="text-2xl font-heading font-bold text-white mb-1">{user?.user_metadata?.nome || 'Cliente'}</h2>
-                                <p className="text-sm text-gray-400 mb-4">{role?.toUpperCase() || 'MEMBRO'}</p>
-
-                                <button
-                                    onClick={() => setActiveTab('settings')}
-                                    className={clsx(
-                                        "w-full flex items-center justify-center gap-2 py-2 text-sm rounded-lg transition-all",
-                                        activeTab === 'settings'
-                                            ? "bg-primary text-dark font-bold shadow-lg shadow-primary/20"
-                                            : "btn-outline"
-                                    )}
-                                >
-                                    <Edit2 className="w-4 h-4" /> Editar Perfil
-                                </button>
+                        <div className="relative w-32 h-32 flex-shrink-0">
+                            <div className="absolute inset-0 bg-gradient-to-br from-primary to-yellow-600 rounded-full blur opacity-20"></div>
+                            <div className="relative w-full h-full bg-gray-800 rounded-full border-2 border-primary/50 flex items-center justify-center overflow-hidden">
+                                {user?.user_metadata?.avatar_url ? (
+                                    <img src={user.user_metadata.avatar_url} alt="Profile" className="w-full h-full object-cover" />
+                                ) : (
+                                    <User className="w-16 h-16 text-gray-400" />
+                                )}
                             </div>
-
-                            <div className="space-y-4 border-t border-white/5 pt-6">
-                                <div className="flex items-center gap-3 text-sm text-gray-300">
-                                    <div className="w-8 h-8 rounded-lg bg-gray-800/50 flex items-center justify-center text-primary">
-                                        <Mail className="w-4 h-4" />
-                                    </div>
-                                    <div className="flex-1 truncate">
-                                        <p className="text-xs text-gray-500">Email</p>
-                                        <p className="truncate" title={user?.email}>{user?.email}</p>
-                                    </div>
+                            <div className="absolute bottom-1 right-1 bg-dark border border-gray-700 rounded-full p-2" title="Seu Cargo">
+                                <Shield className="w-4 h-4 text-primary" />
+                            </div>
+                        </div>
+                        <div className="text-center md:text-left">
+                            <h2 className="text-3xl font-heading font-bold text-white mb-2">{user?.user_metadata?.nome || 'Cliente'}</h2>
+                            <p className="text-sm text-gray-400 mb-4">{role?.toUpperCase() || 'MEMBRO'}</p>
+                            <div className="flex flex-wrap items-center justify-center md:justify-start gap-4">
+                                <div className="flex items-center gap-2 text-sm text-gray-300 bg-white/5 px-3 py-1.5 rounded-lg border border-white/5">
+                                    <Mail className="w-4 h-4 text-primary" />
+                                    <span>{user?.email}</span>
                                 </div>
-                                <div className="flex items-center gap-3 text-sm text-gray-300">
-                                    <div className="w-8 h-8 rounded-lg bg-gray-800/50 flex items-center justify-center text-primary">
-                                        <Phone className="w-4 h-4" />
-                                    </div>
-                                    <div>
-                                        <p className="text-xs text-gray-500">Telemóvel</p>
-                                        <p>{user?.user_metadata?.telemovel || 'Não definido'}</p>
-                                    </div>
+                                <div className="flex items-center gap-2 text-sm text-gray-300 bg-white/5 px-3 py-1.5 rounded-lg border border-white/5">
+                                    <Phone className="w-4 h-4 text-primary" />
+                                    <span>{user?.user_metadata?.telemovel || 'Não definido'}</span>
                                 </div>
                             </div>
-
-                            <button
-                                onClick={signOut}
-                                className="w-full mt-8 flex items-center justify-center gap-2 text-red-500 hover:text-red-400 hover:bg-red-500/10 py-3 rounded-lg transition-colors border border-transparent hover:border-red-500/20"
-                            >
-                                <LogOut className="w-4 h-4" /> Sair da Conta
-                            </button>
                         </div>
                     </motion.div>
 
-                    {/* RIGHT COLUMN: Appointments Dashboard */}
-                    <div className="lg:col-span-2">
-                        {/* Tabs */}
-                        <div className="flex items-center gap-6 mb-8 border-b border-white/5 overflow-x-auto">
-                            {[
-                                { id: 'upcoming', label: 'Próximos' },
-                                { id: 'orders', label: 'Encomendas' },
-                                { id: 'settings', label: 'Definições' }
-                            ].map(tab => (
-                                <button
-                                    key={tab.id}
-                                    onClick={() => setActiveTab(tab.id as any)}
-                                    className={clsx(
-                                        "pb-4 text-sm font-bold uppercase tracking-wider relative transition-colors whitespace-nowrap",
-                                        activeTab === tab.id ? "text-primary" : "text-gray-500 hover:text-gray-300"
-                                    )}
-                                >
-                                    {tab.label}
-                                    {activeTab === tab.id && (
-                                        <motion.div layoutId="activeTab" className="absolute bottom-0 left-0 w-full h-0.5 bg-primary" />
-                                    )}
-                                </button>
-                            ))}
+                    {/* Settings Content */}
+                    <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.1 }}
+                        className="space-y-8"
+                    >
+                        {/* Personal Details Card */}
+                        <div className="bg-zinc-900 border border-zinc-800 rounded-3xl p-8 shadow-xl">
+                            <h3 className="text-xl font-bold text-white mb-6 flex items-center gap-2">
+                                <User className="w-5 h-5 text-primary" />
+                                Informações Pessoais
+                            </h3>
+
+                            <form onSubmit={handleProfileUpdate} className="space-y-6">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    <div className="space-y-2">
+                                        <label className="text-sm text-gray-400">Nome Completo</label>
+                                        <input
+                                            type="text"
+                                            value={profileData.nome}
+                                            onChange={(e) => setProfileData({ ...profileData, nome: e.target.value })}
+                                            className="w-full bg-black/40 border border-gray-700 rounded-xl px-4 py-3 text-white focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none transition-all"
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <label className="text-sm text-gray-400">Telemóvel</label>
+                                        <input
+                                            type="tel"
+                                            value={profileData.telemovel}
+                                            onChange={(e) => setProfileData({ ...profileData, telemovel: e.target.value })}
+                                            className="w-full bg-black/40 border border-gray-700 rounded-xl px-4 py-3 text-white focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none transition-all"
+                                        />
+                                    </div>
+                                    <div className="space-y-2 md:col-span-2">
+                                        <label className="text-sm text-gray-400">Email (Não editável)</label>
+                                        <div className="relative">
+                                            <input
+                                                type="email"
+                                                value={user?.email || ''}
+                                                disabled
+                                                className="w-full bg-black/20 border border-gray-800 rounded-xl px-4 py-3 text-gray-500 cursor-not-allowed pl-12"
+                                            />
+                                            <Lock className="w-4 h-4 text-gray-600 absolute left-4 top-1/2 transform -translate-y-1/2" />
+                                        </div>
+                                    </div>
+                                    <div className="space-y-2 md:col-span-2 pt-2">
+                                        <ImageUpload
+                                            value={profileData.avatar_url}
+                                            onChange={(url) => setProfileData({ ...profileData, avatar_url: url })}
+                                            bucket="imagens"
+                                            folder="perfis"
+                                            label="Foto de Perfil"
+                                        />
+                                    </div>
+                                </div>
+                                <div className="flex justify-end pt-4 border-t border-white/5 mt-6">
+                                    <button type="submit" className="btn-primary px-8 py-3 flex items-center gap-2 rounded-xl">
+                                        <Save className="w-5 h-5" />
+                                        Guardar Alterações
+                                    </button>
+                                </div>
+                            </form>
                         </div>
 
-                        {loading ? (
-                            <div className="flex justify-center py-20">
-                                <Loader className="w-10 h-10 text-primary animate-spin" />
-                            </div>
-                        ) : activeTab === 'settings' ? (
-                            // Settings Tab Content
-                            <motion.div
-                                initial={{ opacity: 0, y: 10 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                className="space-y-6"
-                            >
-                                {/* Personal Details Card */}
-                                <div className="bg-dark/40 border border-white/5 rounded-2xl p-6 sm:p-8">
-                                    <h3 className="text-xl font-bold text-white mb-6 flex items-center gap-2">
-                                        <User className="w-5 h-5 text-primary" />
-                                        Informações Pessoais
-                                    </h3>
+                        {/* Security Card */}
+                        <div className="bg-zinc-900 border border-zinc-800 rounded-3xl p-8 shadow-xl">
+                            <h3 className="text-xl font-bold text-white mb-6 flex items-center gap-2">
+                                <Shield className="w-5 h-5 text-primary" />
+                                Segurança da Conta
+                            </h3>
 
-                                    <form onSubmit={handleProfileUpdate} className="space-y-6">
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                            <div className="space-y-2">
-                                                <label className="text-sm text-gray-400">Nome Completo</label>
-                                                <input
-                                                    type="text"
-                                                    value={profileData.nome}
-                                                    onChange={(e) => setProfileData({ ...profileData, nome: e.target.value })}
-                                                    className="w-full bg-black/40 border border-gray-700 rounded-lg px-4 py-3 text-white focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none transition-all"
-                                                />
-                                            </div>
-                                            <div className="space-y-2">
-                                                <label className="text-sm text-gray-400">Telemóvel</label>
-                                                <input
-                                                    type="tel"
-                                                    value={profileData.telemovel}
-                                                    onChange={(e) => setProfileData({ ...profileData, telemovel: e.target.value })}
-                                                    className="w-full bg-black/40 border border-gray-700 rounded-lg px-4 py-3 text-white focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none transition-all"
-                                                />
-                                            </div>
-                                            <div className="space-y-2 md:col-span-2">
-                                                <label className="text-sm text-gray-400">Email (Não editável)</label>
-                                                <div className="relative">
-                                                    <input
-                                                        type="email"
-                                                        value={user?.email || ''}
-                                                        disabled
-                                                        className="w-full bg-black/20 border border-gray-800 rounded-lg px-4 py-3 text-gray-500 cursor-not-allowed pl-10"
-                                                    />
-                                                    <Lock className="w-4 h-4 text-gray-600 absolute left-3 top-3.5" />
-                                                </div>
-                                            </div>
-                                            <div className="space-y-2 md:col-span-2 pt-2">
-                                                <ImageUpload
-                                                    value={profileData.avatar_url}
-                                                    onChange={(url) => setProfileData({ ...profileData, avatar_url: url })}
-                                                    bucket="imagens"
-                                                    folder="perfis"
-                                                    label="Foto de Perfil"
-                                                />
-                                            </div>
-                                        </div>
-                                        <div className="flex justify-end pt-2">
-                                            <button type="submit" className="btn-primary px-6 py-2.5 flex items-center gap-2">
-                                                <Save className="w-4 h-4" />
-                                                Guardar Informações
-                                            </button>
-                                        </div>
-                                    </form>
-                                </div>
-
-                                {/* Security Card */}
-                                <div className="bg-dark/40 border border-white/5 rounded-2xl p-6 sm:p-8">
-                                    <h3 className="text-xl font-bold text-white mb-6 flex items-center gap-2">
-                                        <Shield className="w-5 h-5 text-primary" />
-                                        Segurança da Conta
-                                    </h3>
-
-                                    <form onSubmit={handlePasswordUpdate} className="space-y-6">
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                            <div className="space-y-2">
-                                                <label className="text-sm text-gray-400">Nova Palavra-passe</label>
-                                                <input
-                                                    type="password"
-                                                    value={passwords.new}
-                                                    onChange={(e) => setPasswords({ ...passwords, new: e.target.value })}
-                                                    placeholder="Mínimo 6 caracteres"
-                                                    className="w-full bg-black/40 border border-gray-700 rounded-lg px-4 py-3 text-white focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none transition-all"
-                                                />
-                                            </div>
-                                            <div className="space-y-2">
-                                                <label className="text-sm text-gray-400">Confirmar Palavra-passe</label>
-                                                <input
-                                                    type="password"
-                                                    value={passwords.confirm}
-                                                    onChange={(e) => setPasswords({ ...passwords, confirm: e.target.value })}
-                                                    placeholder="Repita a palavra-passe"
-                                                    className="w-full bg-black/40 border border-gray-700 rounded-lg px-4 py-3 text-white focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none transition-all"
-                                                />
-                                            </div>
-                                        </div>
-                                        <div className="flex justify-end pt-2">
-                                            <button
-                                                type="submit"
-                                                className="bg-gray-800 hover:bg-gray-700 text-white font-medium px-6 py-2.5 rounded-lg flex items-center gap-2 transition-colors border border-gray-700"
-                                                disabled={!passwords.new || !passwords.confirm}
-                                            >
-                                                <Lock className="w-4 h-4" />
-                                                Atualizar Palavra-passe
-                                            </button>
-                                        </div>
-                                    </form>
-                                </div>
-                            </motion.div>
-                        ) : activeTab === 'orders' ? (
-                            // ORDERS TAB Content
-                            <div className="space-y-6">
-                                {ordersLoading ? (
-                                    <div className="text-center py-10"><Loader className="w-8 h-8 text-primary animate-spin mx-auto" /></div>
-                                ) : orders.length > 0 ? (
-                                    orders.map((order) => (
-                                        <motion.div
-                                            key={order.id}
-                                            initial={{ opacity: 0, y: 20 }}
-                                            animate={{ opacity: 1, y: 0 }}
-                                            className="bg-dark/40 border border-white/5 rounded-2xl overflow-hidden hover:border-primary/30 transition-all"
-                                        >
-                                            <div className="p-6">
-                                                <div className="flex flex-wrap justify-between items-start gap-4 mb-4">
-                                                    <div>
-                                                        <span className="text-xs font-bold text-gray-500 uppercase tracking-widest">Encomenda #{order.id.slice(0, 4)}</span>
-                                                        <h4 className="text-lg font-bold text-white mt-1 flex items-center gap-2">
-                                                            {new Date(order.created_at).toLocaleDateString('pt-PT')}
-                                                            <span className={`text-xs px-2 py-0.5 rounded-full border ${order.status === 'entregue' ? 'bg-green-500/10 text-green-500 border-green-500/20' :
-                                                                'bg-yellow-500/10 text-yellow-500 border-yellow-500/20'
-                                                                }`}>
-                                                                {order.status}
-                                                            </span>
-                                                        </h4>
-                                                    </div>
-                                                    <div className="text-right">
-                                                        <span className="text-2xl font-bold text-primary">{order.total}€</span>
-                                                    </div>
-                                                </div>
-
-                                                <div className="bg-white/5 rounded-xl p-4 mb-4">
-                                                    <ul className="space-y-2">
-                                                        {order.itens?.map((item: any, i: number) => (
-                                                            <li key={i} className="flex justify-between text-sm text-gray-300">
-                                                                <span>{item.quantity}x {item.nome}</span>
-                                                                <span className="font-bold">{item.preco}€</span>
-                                                            </li>
-                                                        ))}
-                                                    </ul>
-                                                </div>
-
-                                                {order.status !== 'entregue' && order.status !== 'cancelado' && (
-                                                    <div className="flex items-center gap-4 bg-primary/10 p-3 rounded-xl border border-primary/20">
-                                                        <div className="bg-white p-2 rounded-lg">
-                                                            <QrCode className="w-6 h-6 text-black" />
-                                                        </div>
-                                                        <div>
-                                                            <p className="text-xs text-primary font-bold uppercase tracking-wider">Código de Levantamento</p>
-                                                            <p className="text-xl font-mono font-bold text-white tracking-[0.2em]">{order.codigo}</p>
-                                                        </div>
-                                                    </div>
-                                                )}
-                                            </div>
-                                        </motion.div>
-                                    ))
-                                ) : (
-                                    <div className="bg-dark/30 border border-white/5 rounded-2xl p-12 text-center flex flex-col items-center">
-                                        <div className="w-16 h-16 bg-gray-800 rounded-full flex items-center justify-center mb-4">
-                                            <ShoppingBag className="w-8 h-8 text-gray-500" />
-                                        </div>
-                                        <h3 className="text-xl font-bold text-white mb-2">Sem encomendas</h3>
-                                        <p className="text-gray-400 mb-8 max-w-sm">Ainda não realizou nenhuma compra na nossa loja.</p>
-                                        <button onClick={() => navigate('/loja')} className="btn-primary px-8 py-3">
-                                            Ir para a Loja
-                                        </button>
+                            <form onSubmit={handlePasswordUpdate} className="space-y-6">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    <div className="space-y-2">
+                                        <label className="text-sm text-gray-400">Nova Palavra-passe</label>
+                                        <input
+                                            type="password"
+                                            value={passwords.new}
+                                            onChange={(e) => setPasswords({ ...passwords, new: e.target.value })}
+                                            placeholder="Mínimo 6 caracteres"
+                                            className="w-full bg-black/40 border border-gray-700 rounded-xl px-4 py-3 text-white focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none transition-all"
+                                        />
                                     </div>
-                                )}
-                            </div>
-                        ) : displayAppointments.length > 0 ? (
-                            // Appointments List (Upcoming/History)
-                            <div className="space-y-4">
-                                <AnimatePresence mode="popLayout">
-                                    {displayAppointments.map((apt) => (
-                                        <motion.div
-                                            key={apt.id}
-                                            initial={{ opacity: 0, y: 20 }}
-                                            animate={{ opacity: 1, y: 0 }}
-                                            exit={{ opacity: 0, scale: 0.95 }}
-                                            className="bg-dark/40 border border-white/5 hover:border-primary/30 rounded-xl p-5 transition-all group"
-                                        >
-                                            <div className="flex flex-col md:flex-row justify-between md:items-center gap-4">
-                                                <div className="flex items-start gap-4">
-                                                    <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center text-primary mt-1">
-                                                        <Scissors className="w-6 h-6" />
-                                                    </div>
-                                                    <div>
-                                                        <h3 className="text-lg font-bold text-white group-hover:text-primary transition-colors">
-                                                            {apt.servicos?.nome}
-                                                        </h3>
-                                                        <div className="flex items-center gap-4 text-sm text-gray-400 mt-1">
-                                                            <div className="flex items-center gap-1">
-                                                                <User className="w-3 h-3" />
-                                                                {apt.barbeiros?.nome}
-                                                            </div>
-                                                            <div className="flex items-center gap-1">
-                                                                <Clock className="w-3 h-3" />
-                                                                {formatTime(apt.data_hora)}
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                </div>
-
-                                                <div className="flex flex-col items-end gap-2 pl-16 md:pl-0">
-                                                    <div className="flex items-center gap-3">
-                                                        <span className="text-white font-heading font-bold text-lg">
-                                                            {formatDate(apt.data_hora)}
-                                                        </span>
-                                                        <span className={clsx(
-                                                            "px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide border",
-                                                            apt.status === 'confirmado' ? "bg-blue-500/10 text-blue-500 border-blue-500/20" :
-                                                                apt.status === 'marcado' ? "bg-yellow-500/10 text-yellow-500 border-yellow-500/20" :
-                                                                    apt.status === 'concluido' ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/20" :
-                                                                        "bg-red-500/10 text-red-500 border-red-500/20"
-                                                        )}>
-                                                            {apt.status}
-                                                        </span>
-                                                    </div>
-
-                                                    {activeTab === 'upcoming' && (apt.status === 'marcado' || apt.status === 'confirmado') && (
-                                                        <div className="flex items-center gap-2 mt-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                            <a
-                                                                href={getGoogleCalendarUrl(
-                                                                    `Corte - ${apt.servicos?.nome}`,
-                                                                    apt.data_hora,
-                                                                    apt.servicos?.duracao || 60
-                                                                )}
-                                                                target="_blank"
-                                                                rel="noopener noreferrer"
-                                                                className="p-2 hover:bg-blue-500/10 rounded-lg text-blue-500/70 hover:text-blue-500 transition-colors"
-                                                                title="Adicionar ao Google Calendar"
-                                                            >
-                                                                <CalendarIcon className="w-4 h-4" />
-                                                            </a>
-                                                            <button
-                                                                onClick={() => handleReschedule(apt)}
-                                                                className="p-2 hover:bg-gray-700/50 rounded-lg text-gray-400 hover:text-white transition-colors"
-                                                                title="Remarcar"
-                                                            >
-                                                                <Repeat className="w-4 h-4" />
-                                                            </button>
-                                                            <button
-                                                                onClick={() => handleCancel(apt.id)}
-                                                                className="p-2 hover:bg-red-500/10 rounded-lg text-red-500/70 hover:text-red-500 transition-colors"
-                                                                title="Cancelar"
-                                                            >
-                                                                <X className="w-4 h-4" />
-                                                            </button>
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            </div>
-                                        </motion.div>
-                                    ))}
-                                </AnimatePresence>
-                            </div>
-                        ) : (
-                            // Empty State for Appointments
-                            <div className="bg-dark/30 border border-white/5 rounded-2xl p-12 text-center flex flex-col items-center">
-                                <div className="w-16 h-16 bg-gray-800 rounded-full flex items-center justify-center mb-4">
-                                    <History className="w-8 h-8 text-gray-500" />
+                                    <div className="space-y-2">
+                                        <label className="text-sm text-gray-400">Confirmar Palavra-passe</label>
+                                        <input
+                                            type="password"
+                                            value={passwords.confirm}
+                                            onChange={(e) => setPasswords({ ...passwords, confirm: e.target.value })}
+                                            placeholder="Repita a palavra-passe"
+                                            className="w-full bg-black/40 border border-gray-700 rounded-xl px-4 py-3 text-white focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none transition-all"
+                                        />
+                                    </div>
                                 </div>
-                                <h3 className="text-xl font-bold text-white mb-2">
-                                    {activeTab === 'upcoming' ? "Sem marcações futuros" : "Sem histórico recente"}
-                                </h3>
-                                <p className="text-gray-400 mb-8 max-w-sm">
-                                    {activeTab === 'upcoming'
-                                        ? "Você não tem nenhum corte agendado para os próximos dias."
-                                        : "Você ainda não realizou marcações conosco."}
-                                </p>
-                                <button onClick={() => navigate('/agendar')} className="btn-primary px-8 py-3">
-                                    Agendar Agora
-                                </button>
-                            </div>
-                        )}
-                    </div>
+                                <div className="flex justify-end pt-4 border-t border-white/5 mt-6">
+                                    <button
+                                        type="submit"
+                                        className="bg-gray-800 hover:bg-gray-700 text-white font-bold px-8 py-3 rounded-xl flex items-center gap-2 transition-all border border-gray-700 hover:border-gray-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                                        disabled={!passwords.new || !passwords.confirm}
+                                    >
+                                        <Lock className="w-5 h-5" />
+                                        Atualizar Palavra-passe
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </motion.div>
                 </div>
             </div>
         </div>

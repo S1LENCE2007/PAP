@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { motion } from 'framer-motion';
-import { ShoppingBag, Search, Filter, ShoppingCart, Plus, Loader } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { ShoppingBag, Search, Filter, ShoppingCart, Plus, Loader, X } from 'lucide-react';
 import { supabase } from '../utils/supabase';
 import { useCart, type Product } from '../contexts/CartContext';
 import shopBannerImage from '../imagens/b_shop.jpg';
@@ -12,6 +12,7 @@ const Shop: React.FC = () => {
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedCategory, setSelectedCategory] = useState('Todos');
+    const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
     const { addToCart } = useCart();
 
     useEffect(() => {
@@ -113,7 +114,7 @@ const Shop: React.FC = () => {
                                         ) : (
                                             <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                                                 <button
-                                                    onClick={() => addToCart(product)}
+                                                    onClick={() => setSelectedProduct(product)}
                                                     className="btn-primary transform translate-y-4 group-hover:translate-y-0 transition-all flex items-center px-6 py-3 rounded-full"
                                                 >
                                                     <Plus className="w-5 h-5 mr-2" /> Adicionar
@@ -134,7 +135,7 @@ const Shop: React.FC = () => {
                                                 </span>
                                             )}
                                             <button
-                                                onClick={() => product.stock > 0 && addToCart(product)}
+                                                onClick={() => product.stock > 0 && setSelectedProduct(product)}
                                                 disabled={product.stock === 0}
                                                 className={`w-full py-3 border rounded-xl font-bold transition-all md:hidden flex justify-center items-center ${product.stock === 0
                                                     ? 'bg-white/5 border-white/5 text-gray-500 cursor-not-allowed'
@@ -159,6 +160,82 @@ const Shop: React.FC = () => {
                     </>
                 )}
             </div>
+
+            {/* Modal de Detalhes do Produto */}
+            <AnimatePresence>
+                {selectedProduct && (
+                    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            onClick={() => setSelectedProduct(null)}
+                            className="absolute inset-0 bg-black/80 backdrop-blur-sm"
+                        />
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.9, y: 20 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.9, y: 20 }}
+                            className="bg-card-bg border border-white/10 rounded-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto relative z-[101] shadow-2xl flex flex-col md:flex-row"
+                        >
+                            <button
+                                onClick={() => setSelectedProduct(null)}
+                                className="absolute top-4 right-4 bg-black/50 text-white p-2 rounded-full hover:bg-primary hover:text-dark transition-colors z-20"
+                            >
+                                <X className="w-6 h-6" />
+                            </button>
+                            
+                            <div className="w-full md:w-1/2 bg-black/20 flex items-center justify-center p-8">
+                                <img 
+                                    src={selectedProduct.imagem_url} 
+                                    alt={selectedProduct.nome}
+                                    className="w-full h-auto max-h-[400px] object-contain rounded-xl"
+                                />
+                            </div>
+                            
+                            <div className="w-full md:w-1/2 p-8 md:p-12 flex flex-col">
+                                <div className="text-sm text-primary font-bold uppercase tracking-wider mb-2">
+                                    {selectedProduct.categoria}
+                                </div>
+                                <h2 className="text-3xl font-bold text-white mb-4">{selectedProduct.nome}</h2>
+                                <div className="text-3xl font-bold text-primary mb-6">
+                                    {selectedProduct.preco.toFixed(2)}€
+                                </div>
+                                
+                                <div className="flex-1">
+                                    <h3 className="text-lg font-bold text-white mb-2">Descrição</h3>
+                                    <p className="text-gray-300 leading-relaxed mb-8">
+                                        {selectedProduct.descricao || "Nenhuma descrição disponível para este produto."}
+                                    </p>
+                                    
+                                    {selectedProduct.stock > 0 && selectedProduct.stock <= 5 && (
+                                        <div className="bg-orange-500/10 border border-orange-500/20 text-orange-500 px-4 py-3 rounded-xl mb-6 font-bold flex items-center">
+                                            Apenas {selectedProduct.stock} unidades restantes!
+                                        </div>
+                                    )}
+                                </div>
+                                
+                                <div className="mt-auto pt-6 border-t border-white/5">
+                                    <button
+                                        onClick={() => {
+                                            addToCart(selectedProduct);
+                                            setSelectedProduct(null);
+                                        }}
+                                        disabled={selectedProduct.stock === 0}
+                                        className={`w-full py-4 rounded-xl font-bold transition-all text-lg flex justify-center items-center ${
+                                            selectedProduct.stock === 0
+                                            ? 'bg-white/5 text-gray-500 cursor-not-allowed'
+                                            : 'btn-primary'
+                                        }`}
+                                    >
+                                        {selectedProduct.stock === 0 ? 'Esgotado' : <><ShoppingCart className="w-6 h-6 mr-3" /> Adicionar ao Carrinho</>}
+                                    </button>
+                                </div>
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
         </div>
     );
 };

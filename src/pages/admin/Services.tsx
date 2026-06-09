@@ -1,8 +1,10 @@
+import toast from 'react-hot-toast';
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../../utils/supabase';
 import { Save, Loader, Edit, Trash, X, Search, Plus, Scissors, Clock, DollarSign } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import ImageUpload from '../../components/ui/ImageUpload';
+import ConfirmModal from '../../components/modals/ConfirmModal';
 
 interface Service {
     id: string;
@@ -21,6 +23,7 @@ const AdminServices: React.FC = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [isEditing, setIsEditing] = useState(false);
     const [currentService, setCurrentService] = useState<Partial<Service>>({});
+    const [confirmModal, setConfirmModal] = useState<{ isOpen: boolean; id: string | null }>({ isOpen: false, id: null });
 
     useEffect(() => {
         fetchServices();
@@ -58,18 +61,23 @@ const AdminServices: React.FC = () => {
         setCurrentService({});
     };
 
-    const handleDelete = async (id: string) => {
-        if (!window.confirm('Tem certeza que deseja excluir este serviço?')) return;
+    const handleDeleteClick = (id: string) => {
+        setConfirmModal({ isOpen: true, id });
+    };
 
+    const handleConfirmDelete = async () => {
+        if (!confirmModal.id) return;
         try {
-            const { error } = await supabase.from('servicos').delete().eq('id', id);
+            const { error } = await supabase.from('servicos').delete().eq('id', confirmModal.id);
             if (error) throw error;
 
-            setServices(services.filter(s => s.id !== id));
-            // alert('Serviço removido com sucesso.');
+            setServices(services.filter(s => s.id !== confirmModal.id));
+            toast.success('Serviço removido com sucesso.');
         } catch (error: any) {
             console.error('Erro ao excluir:', error);
-            alert('Erro ao excluir serviço: ' + error.message);
+            toast.error('Erro ao excluir serviço: ' + error.message);
+        } finally {
+            setConfirmModal({ isOpen: false, id: null });
         }
     };
 
@@ -77,7 +85,7 @@ const AdminServices: React.FC = () => {
         e.preventDefault();
         try {
             if (!currentService.nome || !currentService.preco || !currentService.duracao) {
-                alert('Preencha todos os campos obrigatórios.');
+                toast.error('Preencha todos os campos obrigatórios.');
                 return;
             }
 
@@ -110,7 +118,7 @@ const AdminServices: React.FC = () => {
             fetchServices();
         } catch (error: any) {
             console.error('Erro ao salvar:', error);
-            alert('Erro ao salvar serviço: ' + error.message);
+            toast.error('Erro ao salvar serviço: ' + error.message);
         }
     };
 
@@ -284,7 +292,7 @@ const AdminServices: React.FC = () => {
                                 <motion.div layoutId={service.id} key={service.id} className="bg-zinc-900 border border-white/5 rounded-2xl p-5 hover:border-white/10 transition-colors group relative flex flex-col">
                                     <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1 z-10">
                                         <button onClick={() => handleEdit(service)} className="p-2 bg-blue-500/10 text-blue-400 rounded-lg hover:bg-blue-500/20 transition-colors"><Edit className="w-4 h-4" /></button>
-                                        <button onClick={() => handleDelete(service.id)} className="p-2 bg-red-500/10 text-red-400 rounded-lg hover:bg-red-500/20 transition-colors"><Trash className="w-4 h-4" /></button>
+                                        <button onClick={() => handleDeleteClick(service.id)} className="p-2 bg-red-500/10 text-red-400 rounded-lg hover:bg-red-500/20 transition-colors"><Trash className="w-4 h-4" /></button>
                                     </div>
 
                                     {service.imagem_url ? (
@@ -321,6 +329,14 @@ const AdminServices: React.FC = () => {
                     </motion.div>
                 )}
             </AnimatePresence>
+            <ConfirmModal
+                isOpen={confirmModal.isOpen}
+                onClose={() => setConfirmModal({ isOpen: false, id: null })}
+                onConfirm={handleConfirmDelete}
+                title="Excluir Serviço"
+                message="Tem certeza que deseja excluir este serviço? Esta ação não pode ser desfeita e pode afetar as marcações existentes."
+                confirmText="Excluir Serviço"
+            />
         </div>
     );
 };

@@ -1,8 +1,10 @@
+import toast from 'react-hot-toast';
 import React, { useState, useEffect } from 'react';
 import { Plus, Edit, Trash, Save, Loader, ShoppingBag, X, Search } from 'lucide-react';
 import { supabase } from '../../utils/supabase';
 import { motion, AnimatePresence } from 'framer-motion';
 import ImageUpload from '../../components/ui/ImageUpload';
+import ConfirmModal from '../../components/modals/ConfirmModal';
 
 interface Product {
     id: string;
@@ -22,6 +24,7 @@ const AdminProducts: React.FC = () => {
     const [formData, setFormData] = useState<Partial<Product>>({});
     const [searchTerm, setSearchTerm] = useState('');
     const [activeTab, setActiveTab] = useState('Todas');
+    const [confirmModal, setConfirmModal] = useState<{ isOpen: boolean; id: string | null }>({ isOpen: false, id: null });
 
     useEffect(() => {
         fetchProducts();
@@ -65,16 +68,22 @@ const AdminProducts: React.FC = () => {
         setFormData({});
     };
 
-    const handleDelete = async (id: string) => {
-        if (!window.confirm('Tem certeza que deseja excluir este produto?')) return;
+    const handleDeleteClick = (id: string) => {
+        setConfirmModal({ isOpen: true, id });
+    };
 
+    const handleConfirmDelete = async () => {
+        if (!confirmModal.id) return;
         try {
-            const { error } = await supabase.from('produtos').delete().eq('id', id);
+            const { error } = await supabase.from('produtos').delete().eq('id', confirmModal.id);
             if (error) throw error;
             fetchProducts();
+            toast.success('Produto excluído com sucesso.');
         } catch (error) {
             console.error('Erro ao excluir:', error);
-            alert('Erro ao excluir produto.');
+            toast.error('Erro ao excluir produto.');
+        } finally {
+            setConfirmModal({ isOpen: false, id: null });
         }
     };
 
@@ -93,7 +102,7 @@ const AdminProducts: React.FC = () => {
             fetchProducts();
         } catch (error) {
             console.error('Erro ao salvar:', error);
-            alert('Erro ao salvar produto.');
+            toast.error('Erro ao salvar produto.');
         }
     };
 
@@ -262,7 +271,7 @@ const AdminProducts: React.FC = () => {
                                     >
                                         <div className="absolute top-2 right-2 flex space-x-1 opacity-0 group-hover:opacity-100 transition-opacity z-10">
                                             <button onClick={() => handleEdit(product)} className="p-2 bg-blue-500/10 text-blue-400 rounded-lg hover:bg-blue-500/20 backdrop-blur-md"><Edit className="w-4 h-4" /></button>
-                                            <button onClick={() => handleDelete(product.id)} className="p-2 bg-red-500/10 text-red-400 rounded-lg hover:bg-red-500/20 backdrop-blur-md"><Trash className="w-4 h-4" /></button>
+                                            <button onClick={() => handleDeleteClick(product.id)} className="p-2 bg-red-500/10 text-red-400 rounded-lg hover:bg-red-500/20 backdrop-blur-md"><Trash className="w-4 h-4" /></button>
                                         </div>
 
                                         <div className="relative h-48 mb-4 overflow-hidden rounded-xl bg-zinc-800">
@@ -294,6 +303,14 @@ const AdminProducts: React.FC = () => {
                     </motion.div>
                 )}
             </AnimatePresence>
+            <ConfirmModal
+                isOpen={confirmModal.isOpen}
+                onClose={() => setConfirmModal({ isOpen: false, id: null })}
+                onConfirm={handleConfirmDelete}
+                title="Excluir Produto"
+                message="Tem certeza que deseja excluir este produto? Esta ação não pode ser desfeita."
+                confirmText="Excluir Produto"
+            />
         </div>
     );
 };

@@ -9,6 +9,7 @@ import { supabase } from '../utils/supabase';
 
 const Services: React.FC = () => {
     const [categories, setCategories] = React.useState<{ title: string, items: any[] }[]>([]);
+    const [loading, setLoading] = React.useState(true);
 
     React.useEffect(() => {
         const fetchServices = async () => {
@@ -44,6 +45,8 @@ const Services: React.FC = () => {
                 }
             } catch (error) {
                 console.error('Erro ao buscar serviços:', error);
+            } finally {
+                setLoading(false);
             }
         };
 
@@ -60,7 +63,12 @@ const Services: React.FC = () => {
 
             {/* Services List */}
             <div className="max-w-6xl mx-auto px-4 pb-24">
-                {categories.map((category, catIndex) => (
+                {loading ? (
+                    <div className="flex justify-center py-20">
+                        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+                    </div>
+                ) : (
+                    categories.map((category, catIndex) => (
                     <motion.div
                         key={catIndex}
                         className="mb-20"
@@ -112,7 +120,7 @@ const Services: React.FC = () => {
                             ))}
                         </div>
                     </motion.div>
-                ))}
+                )))}
             </div>
 
             {/* CTA */}

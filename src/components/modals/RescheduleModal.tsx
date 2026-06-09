@@ -1,3 +1,4 @@
+import toast from 'react-hot-toast';
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Calendar, Clock, User, Scissors, Sun } from 'lucide-react';
@@ -112,7 +113,7 @@ const RescheduleModal: React.FC<RescheduleModalProps> = ({
 
     const handleSubmit = async () => {
         if (!selectedDate || !selectedTime || !selectedBarberId || !selectedServiceId) {
-            alert('Por favor, preencha todos os campos.');
+            toast.error('Por favor, preencha todos os campos.');
             return;
         }
 
@@ -137,7 +138,7 @@ const RescheduleModal: React.FC<RescheduleModalProps> = ({
             onClose();
         } catch (error) {
             console.error('Erro ao remarcar:', error);
-            alert('Ocorreu um erro ao realizar a remarcação. Por favor, tente novamente.');
+            toast.error('Ocorreu um erro ao realizar a remarcação. Por favor, tente novamente.');
         } finally {
             setIsSubmitting(false);
         }

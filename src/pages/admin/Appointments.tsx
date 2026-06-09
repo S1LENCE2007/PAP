@@ -1,8 +1,10 @@
+import toast from 'react-hot-toast';
 import React, { useEffect, useState } from 'react';
 import { Check, X, Loader, Repeat } from 'lucide-react';
 import { supabase } from '../../utils/supabase';
 import { motion, AnimatePresence } from 'framer-motion';
 import Calendar, { type CalendarEvent } from '../../components/Calendar';
+import ConfirmModal from '../../components/modals/ConfirmModal';
 
 interface Appointment {
     id: string;
@@ -35,11 +37,12 @@ const AdminAppointments: React.FC = () => {
     // Calendar states
     const [calendarView, setCalendarView] = useState<'month' | 'week' | 'day'>('week');
     const [currentDate, setCurrentDate] = useState(new Date());
+    const [confirmModal, setConfirmModal] = useState<{ isOpen: boolean; date: Date | null }>({ isOpen: false, date: null });
 
     const fetchAppointments = async () => {
         setLoading(true);
         try {
-            let query = supabase
+            const query = supabase
                 .from('Marcacoes')
                 .select(`
                     id,
@@ -137,7 +140,7 @@ const AdminAppointments: React.FC = () => {
     };
 
     const handleRescheduleSubmit = async () => {
-        if (!newDate || !newTime) return alert('Por favor, selecione a nova data e hora.');
+        if (!newDate || !newTime) return toast('Por favor, selecione a nova data e hora.');
         const novaDataHora = `${newDate}T${newTime}:00`;
 
         try {
@@ -152,10 +155,10 @@ const AdminAppointments: React.FC = () => {
             setReschedulingApt(null);
             setNewDate('');
             setNewTime('');
-            alert('Marcação reagendada com sucesso!');
+            toast.success('Marcação reagendada com sucesso!');
         } catch (error) {
             console.error('Erro ao remarcar:', error);
-            alert('Erro ao remarcar a marcação.');
+            toast.error('Erro ao remarcar a marcação.');
         }
     };
 
@@ -176,7 +179,7 @@ const AdminAppointments: React.FC = () => {
     };
 
     const handleBlockDaySubmit = async () => {
-        if (selectedDates.length === 0) return alert('Por favor, selecione pelo menos uma data.');
+        if (selectedDates.length === 0) return toast('Por favor, selecione pelo menos uma data.');
         try {
             // 1. Get or create BLOQUEIO_DIA service
             let { data: servico } = await supabase.from('servicos').select('id').eq('nome', 'BLOQUEIO_DIA').maybeSingle();
@@ -214,14 +217,35 @@ const AdminAppointments: React.FC = () => {
 
             if (errApt) throw errApt;
 
-            alert('Dias bloqueados com sucesso!');
+            toast.success('Dias bloqueados com sucesso!');
             setIsSelectionMode(false);
             setSelectedDates([]);
             fetchAppointments();
         } catch (error) {
             console.error('Erro ao bloquear dia:', error);
-            alert('Erro ao bloquear o dia. Tente novamente.');
+            toast.error('Erro ao bloquear o dia. Tente novamente.');
         }
+    };
+
+    const handleConfirmUnblock = async () => {
+        if (!confirmModal.date) return;
+        const date = confirmModal.date;
+        const blockApt = blockedAppointments.find(b => {
+            const bDate = new Date(b.data_hora);
+            return bDate.getFullYear() === date.getFullYear() &&
+                bDate.getMonth() === date.getMonth() &&
+                bDate.getDate() === date.getDate();
+        });
+        if (blockApt) {
+            try {
+                await supabase.from('Marcacoes').delete().eq('id', blockApt.id);
+                fetchAppointments();
+                toast.success('Bloqueio removido com sucesso.');
+            } catch (e) {
+                toast.error('Erro ao remover bloqueio.');
+            }
+        }
+        setConfirmModal({ isOpen: false, date: null });
     };
 
     const calendarEvents: CalendarEvent[] = appointments.map(apt => {
@@ -342,22 +366,7 @@ const AdminAppointments: React.FC = () => {
                     onDaySelect={handleDaySelect}
                     blockedDays={blockedAppointments.map(b => new Date(b.data_hora))}
                     onUnblockDay={async (date) => {
-                        if (!window.confirm('Tem a certeza que deseja remover este bloqueio?')) return;
-                        // Find the block appointment matching the date
-                        const blockApt = blockedAppointments.find(b => {
-                            const bDate = new Date(b.data_hora);
-                            return bDate.getFullYear() === date.getFullYear() && 
-                                   bDate.getMonth() === date.getMonth() && 
-                                   bDate.getDate() === date.getDate();
-                        });
-                        if (blockApt) {
-                            try {
-                                await supabase.from('Marcacoes').delete().eq('id', blockApt.id);
-                                fetchAppointments();
-                            } catch (e) {
-                                alert('Erro ao remover bloqueio.');
-                            }
-                        }
+                        setConfirmModal({ isOpen: true, date });
                     }}
                 />
             )}
@@ -405,6 +414,15 @@ const AdminAppointments: React.FC = () => {
                     </div>
                 )}
             </AnimatePresence>
+
+            <ConfirmModal
+                isOpen={confirmModal.isOpen}
+                onClose={() => setConfirmModal({ isOpen: false, date: null })}
+                onConfirm={handleConfirmUnblock}
+                title="Remover Bloqueio"
+                message="Tem a certeza que deseja remover este bloqueio? Esta ação irá disponibilizar o dia novamente para marcações."
+                confirmText="Remover Bloqueio"
+            />
         </div>
     );
 };

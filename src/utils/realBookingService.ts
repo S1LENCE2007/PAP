@@ -36,7 +36,7 @@ export const getRealAvailableSlots = async (
     const startOfDay = `${dateStr}T00:00:00`;
     const endOfDay = `${dateStr}T23:59:59`;
 
-    let query = supabase
+    const query = supabase
         .from('Marcacoes')
         .select(`
             id,

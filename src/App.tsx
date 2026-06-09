@@ -5,6 +5,7 @@ import ScrollToTop from './components/layout/ScrollToTop';
 import ProtectedRoute from './components/layout/ProtectedRoute';
 import MainLayout from './components/layout/MainLayout';
 import AdminLayout from './components/layout/AdminLayout';
+import BarberLayout from './components/layout/BarberLayout';
 
 import Home from './pages/Home';
 import About from './pages/About';
@@ -15,6 +16,7 @@ import Booking from './pages/Booking';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import Profile from './pages/Profile';
+import MyAppointments from './pages/MyAppointments';
 import Shop from './pages/Shop';
 import Cart from './pages/Cart';
 import Reviews from './pages/Reviews';
@@ -30,6 +32,8 @@ import BarberDashboard from './pages/barber/Dashboard';
 import MyOrders from './pages/MyOrders';
 import VerifyOrder from './pages/admin/VerifyOrder';
 
+import { Toaster } from 'react-hot-toast';
+
 import './App.css';
 
 function App() {
@@ -38,6 +42,22 @@ function App() {
       <CartProvider>
         <Router basename={import.meta.env.BASE_URL}>
           <ScrollToTop />
+          <Toaster 
+            position="top-right"
+            toastOptions={{
+              style: {
+                background: '#18181b', // zinc-900
+                color: '#fff',
+                border: '1px solid #27272a', // zinc-800
+              },
+              success: {
+                iconTheme: {
+                  primary: '#d4af37', // primary color
+                  secondary: '#000',
+                },
+              },
+            }}
+          />
           <Routes>
             {/* All Routes Wrapped in MainLayout for Unified Look */}
             <Route element={<MainLayout />}>
@@ -56,7 +76,7 @@ function App() {
               <Route element={<ProtectedRoute />}>
                 <Route path="/agendar" element={<Booking />} />
                 <Route path="/perfil" element={<Profile />} />
-                <Route path="/barbeiro" element={<BarberDashboard />} />
+                <Route path="/minhas-marcacoes" element={<MyAppointments />} />
                 <Route path="/minhas-encomendas" element={<MyOrders />} />
               </Route>
 
@@ -75,6 +95,11 @@ function App() {
                 <Route path="produtos" element={<AdminProducts />} />
                 <Route path="galeria" element={<AdminGallery />} />
                 <Route path="servicos" element={<AdminServices />} />
+              </Route>
+
+              {/* Barber Routes */}
+              <Route path="/barbeiro" element={<BarberLayout />}>
+                <Route index element={<BarberDashboard />} />
               </Route>
             </Route>
           </Routes>

@@ -1,6 +1,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { Award, Users, History } from 'lucide-react';
+import barbeariaImg from '../imagens/Barbiaria.jpg';
 
 import PageHeader from '../components/layout/PageHeader';
 
@@ -47,7 +48,7 @@ const About: React.FC = () => {
                         >
                             <div className="absolute inset-0 bg-primary/10 z-10 group-hover:bg-transparent transition-colors duration-500" />
                             <img
-                                src="https://images.unsplash.com/photo-1503951914875-befbb7135952?q=80&w=2070&auto=format&fit=crop"
+                                src={barbeariaImg}
                                 alt="Interior da Barbearia"
                                 className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
                             />

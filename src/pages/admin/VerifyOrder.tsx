@@ -1,15 +1,18 @@
+import toast from 'react-hot-toast';
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Search, Loader, Package, CheckCircle, AlertCircle, ShoppingBag, DollarSign, User, Phone, Mail } from 'lucide-react';
 import { supabase } from '../../utils/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import PageHeader from '../../components/layout/PageHeader';
+import ConfirmModal from '../../components/modals/ConfirmModal';
 
 const VerifyOrder: React.FC = () => {
-    const { } = useAuth(); // Only admin/barber can access
+    useAuth(); // Only admin/barber can access
     const [code, setCode] = useState('');
     const [order, setOrder] = useState<any>(null);
     const [loading, setLoading] = useState(false);
+    const [confirmModalOpen, setConfirmModalOpen] = useState(false);
     const [error, setError] = useState('');
 
     const handleSearch = async (e: React.FormEvent) => {
@@ -40,9 +43,13 @@ const VerifyOrder: React.FC = () => {
         }
     };
 
-    const handleDeliver = async () => {
+    const handleDeliverClick = () => {
         if (!order) return;
-        if (!window.confirm('Confirmar entrega dos produtos?')) return;
+        setConfirmModalOpen(true);
+    };
+
+    const handleConfirmDeliver = async () => {
+        if (!order) return;
 
         try {
             const { error } = await supabase
@@ -53,9 +60,12 @@ const VerifyOrder: React.FC = () => {
             if (error) throw error;
 
             setOrder({ ...order, status: 'entregue' });
+            toast.success('Estado da encomenda atualizado.');
         } catch (err) {
             console.error(err);
-            alert('Erro ao atualizar estado.');
+            toast.error('Erro ao atualizar estado.');
+        } finally {
+            setConfirmModalOpen(false);
         }
     };
 
@@ -199,7 +209,7 @@ const VerifyOrder: React.FC = () => {
                                         <motion.button
                                             whileHover={{ scale: 1.02 }}
                                             whileTap={{ scale: 0.98 }}
-                                            onClick={handleDeliver}
+                                            onClick={handleDeliverClick}
                                             className="w-full mt-6 bg-emerald-500 hover:bg-emerald-400 text-emerald-950 font-bold py-4 rounded-2xl shadow-lg shadow-emerald-500/20 flex items-center justify-center gap-2 transition-all"
                                         >
                                             <CheckCircle className="w-5 h-5" />
@@ -220,6 +230,15 @@ const VerifyOrder: React.FC = () => {
                     )}
                 </AnimatePresence>
             </div>
+            <ConfirmModal
+                isOpen={confirmModalOpen}
+                onClose={() => setConfirmModalOpen(false)}
+                onConfirm={handleConfirmDeliver}
+                title="Confirmar Entrega"
+                message="Deseja confirmar a entrega dos produtos desta encomenda? O estado será alterado para entregue."
+                confirmText="Confirmar Entrega"
+                isDestructive={false}
+            />
         </div>
     );
 };

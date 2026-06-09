@@ -1,7 +1,8 @@
+import toast from 'react-hot-toast';
 import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Trash2, Plus, Minus, ArrowLeft, CreditCard, Loader } from 'lucide-react';
+import { Trash2, Plus, Minus, ArrowLeft, CheckCircle, Loader, MapPin } from 'lucide-react';
 import { useCart } from '../contexts/CartContext';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../utils/supabase';
@@ -44,46 +45,49 @@ const Cart: React.FC = () => {
                 backgroundImage="https://images.unsplash.com/photo-1626285861696-9f0bf5a49c6d?auto=format&fit=crop&q=80&w=2070"
             />
 
-            <div className="max-w-6xl mx-auto px-4 py-12">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 -mt-20 relative z-10 pb-20">
 
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                     {/* Cart Items */}
-                    <div className="lg:col-span-2 space-y-4">
+                    <div className="lg:col-span-2 space-y-6">
                         {items.map((item) => (
                             <motion.div
                                 key={item.id}
                                 layout
-                                className="bg-dark p-4 rounded-lg border border-gray-800 flex items-center"
+                                className="bg-zinc-900 border border-zinc-800 rounded-3xl overflow-hidden shadow-2xl hover:shadow-primary/5 transition-all duration-300 flex flex-col sm:flex-row items-center p-6 gap-6"
                             >
-                                <img
-                                    src={item.imagem_url}
-                                    alt={item.nome}
-                                    className="w-20 h-20 object-cover rounded bg-gray-800"
-                                />
-                                <div className="ml-4 flex-grow">
-                                    <h3 className="font-bold text-white">{item.nome}</h3>
-                                    <p className="text-primary font-bold">{item.preco.toFixed(2)}€</p>
+                                <div className="bg-black/20 p-2 rounded-2xl w-full sm:w-auto flex-shrink-0">
+                                    <img
+                                        src={item.imagem_url}
+                                        alt={item.nome}
+                                        className="w-full sm:w-24 h-48 sm:h-24 object-cover rounded-xl"
+                                    />
                                 </div>
-                                <div className="flex items-center space-x-3">
-                                    <div className="flex items-center bg-gray-800 rounded-lg">
+                                <div className="flex-grow text-center sm:text-left w-full">
+                                    <h3 className="text-xl font-bold text-white line-clamp-1">{item.nome}</h3>
+                                    <p className="text-sm text-gray-400 mb-2">{item.categoria}</p>
+                                    <p className="text-primary font-bold text-lg">{item.preco.toFixed(2)}€</p>
+                                </div>
+                                <div className="flex sm:flex-col lg:flex-row items-center gap-4 w-full sm:w-auto justify-between sm:justify-end border-t border-white/5 sm:border-t-0 pt-4 sm:pt-0 mt-4 sm:mt-0">
+                                    <div className="flex items-center bg-black/40 rounded-xl border border-white/5 overflow-hidden">
                                         <button
                                             onClick={() => updateQuantity(item.id, item.quantity - 1)}
-                                            className="p-2 text-gray-400 hover:text-white"
+                                            className="p-3 text-gray-400 hover:text-white hover:bg-white/5 transition-colors"
                                         >
                                             <Minus className="w-4 h-4" />
                                         </button>
-                                        <span className="w-8 text-center text-white font-bold">{item.quantity}</span>
+                                        <span className="w-10 text-center text-white font-bold">{item.quantity}</span>
                                         <button
                                             onClick={() => updateQuantity(item.id, item.quantity + 1)}
                                             disabled={item.quantity >= item.stock}
-                                            className={`p-2 transition-colors ${item.quantity >= item.stock ? 'text-gray-600 cursor-not-allowed' : 'text-gray-400 hover:text-white'}`}
+                                            className={`p-3 transition-colors ${item.quantity >= item.stock ? 'text-gray-600 cursor-not-allowed bg-black/20' : 'text-gray-400 hover:text-white hover:bg-white/5'}`}
                                         >
                                             <Plus className="w-4 h-4" />
                                         </button>
                                     </div>
                                     <button
                                         onClick={() => removeFromCart(item.id)}
-                                        className="p-2 text-red-500 hover:bg-red-500/10 rounded-lg transition-colors"
+                                        className="p-3 text-red-500 bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 rounded-xl transition-colors shrink-0"
                                     >
                                         <Trash2 className="w-5 h-5" />
                                     </button>
@@ -94,28 +98,29 @@ const Cart: React.FC = () => {
 
                     {/* Order Summary */}
                     <div className="lg:col-span-1">
-                        <div className="bg-dark p-6 rounded-lg border border-gray-800 sticky top-24">
-                            <h2 className="text-xl font-bold text-white mb-6">Resumo do Pedido</h2>
+                        <div className="bg-zinc-900 border border-zinc-800 rounded-3xl p-6 sm:p-8 shadow-2xl sticky top-24">
+                            <h4 className="text-sm font-bold text-gray-500 uppercase tracking-wider mb-6">Resumo</h4>
 
-                            <div className="space-y-3 mb-6">
+                            <div className="space-y-4 text-sm mb-6">
                                 <div className="flex justify-between text-gray-400">
                                     <span>Subtotal</span>
                                     <span>{total.toFixed(2)}€</span>
                                 </div>
-                                <div className="flex justify-between text-gray-400">
-                                    <span>Envio</span>
-                                    <span>Grátis</span>
-                                </div>
-                                <div className="border-t border-gray-700 pt-3 flex justify-between text-white font-bold text-lg">
+                                <div className="flex justify-between text-white font-bold text-lg pt-4 border-t border-white/10 mt-4">
                                     <span>Total</span>
                                     <span className="text-primary">{total.toFixed(2)}€</span>
                                 </div>
                             </div>
 
+                            <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl p-4 mb-8 flex gap-3 text-amber-200/80">
+                                <MapPin className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
+                                <p className="text-xs leading-relaxed">As encomendas servem apenas como <strong>reserva</strong> dos produtos. O pagamento e o levantamento deverão ser efetuados presencialmente no nosso estabelecimento.</p>
+                            </div>
+
                             <button
                                 onClick={async () => {
                                     if (!user) {
-                                        alert('Por favor, faça login para finalizar a compra.');
+                                        toast('Por favor, faça login para finalizar a compra.');
                                         return;
                                     }
 
@@ -137,23 +142,23 @@ const Cart: React.FC = () => {
                                         if (error) throw error;
 
                                         clearCart();
-                                        alert(`Encomenda registada com sucesso! O seu código de levantamento é: ${code}`);
+                                        toast.success(`Encomenda registada com sucesso! O seu código de levantamento é: ${code}`);
                                         navigate('/');
                                     } catch (err) {
                                         console.error('Erro na encomenda:', err);
-                                        alert('Erro ao finalizar encomenda.');
+                                        toast.error('Erro ao finalizar encomenda.');
                                     } finally {
                                         setIsCheckingOut(false);
                                     }
                                 }}
                                 disabled={isCheckingOut}
-                                className="w-full btn-primary py-3 font-bold uppercase tracking-wide flex items-center justify-center disabled:opacity-50"
+                                className="w-full btn-primary py-4 rounded-xl font-bold uppercase tracking-wide flex items-center justify-center disabled:opacity-50"
                             >
-                                {isCheckingOut ? <Loader className="w-5 h-5 animate-spin" /> : <><CreditCard className="w-5 h-5 mr-2" /> Finalizar Compra</>}
+                                {isCheckingOut ? <Loader className="w-5 h-5 animate-spin" /> : <><CheckCircle className="w-5 h-5 mr-2" /> Finalizar Encomenda</>}
                             </button>
 
-                            <p className="text-xs text-center text-gray-500 mt-4">
-                                Pagamento seguro processado por Stripe (Simulado)
+                            <p className="text-xs text-center text-gray-500 mt-6">
+                                Ao finalizar, receberá um código único para o levantamento.
                             </p>
                         </div>
                     </div>

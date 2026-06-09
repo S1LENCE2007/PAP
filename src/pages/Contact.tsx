@@ -70,7 +70,7 @@ const Contact: React.FC = () => {
                             <div className="mt-16 pt-8 border-t border-white/5">
                                 <h4 className="font-bold text-white mb-4">Siga-nos</h4>
                                 <div className="flex space-x-4">
-                                    <a href="#" className="bg-dark-bg p-3 rounded-full text-gray-400 hover:text-primary hover:bg-black transition-all border border-white/5 hover:border-primary/30">
+                                    <a href="https://www.instagram.com/barberyvandourado/" target="_blank" rel="noopener noreferrer" className="bg-dark-bg p-3 rounded-full text-gray-400 hover:text-primary hover:bg-black transition-all border border-white/5 hover:border-primary/30">
                                         <Instagram className="w-6 h-6" />
                                     </a>
                                     <a href="#" className="bg-dark-bg p-3 rounded-full text-gray-400 hover:text-primary hover:bg-black transition-all border border-white/5 hover:border-primary/30">
@@ -104,12 +104,13 @@ const Contact: React.FC = () => {
 
                         <div className="h-[300px] bg-dark rounded-2xl border border-white/5 overflow-hidden relative shadow-xl">
                             <iframe
-                                src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3046.867667634863!2d-8.6833!3d40.1756!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0xd23f0c000000001%3A0x0!2sMontemor-o-Velho!5e0!3m2!1spt-PT!2spt!4v1620000000000!5m2!1spt-PT!2spt"
+                                src="https://www.google.com/maps/embed?pb=!1m14!1m8!1m3!1d415.7506807235549!2d-8.631872311074613!3d40.213110638634845!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0xd22515504a820af%3A0x20b41df47a79847c!2sBarbearia%20Dourado!5e1!3m2!1spt-PT!2spt!4v1780160556088!5m2!1spt-PT!2spt"
                                 width="100%"
                                 height="100%"
                                 style={{ border: 0 }}
                                 allowFullScreen={true}
                                 loading="lazy"
+                                referrerPolicy="no-referrer-when-downgrade"
                                 title="Localização Barbearia Dourado"
                                 className="grayscale hover:grayscale-0 transition-all duration-700"
                             ></iframe>

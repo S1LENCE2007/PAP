@@ -1,8 +1,10 @@
+import toast from 'react-hot-toast';
 import React, { useState, useEffect } from 'react';
 import { Plus, Trash, Save, Loader, Image as ImageIcon, X, ExternalLink, Eye, EyeOff } from 'lucide-react';
 import { supabase } from '../../utils/supabase';
 import { motion, AnimatePresence } from 'framer-motion';
 import ImageUpload from '../../components/ui/ImageUpload';
+import ConfirmModal from '../../components/modals/ConfirmModal';
 
 interface GalleryItem {
     id: string;
@@ -18,6 +20,7 @@ const AdminGallery: React.FC = () => {
     const [isCreating, setIsCreating] = useState(false);
     const [editingId, setEditingId] = useState<string | null>(null);
     const [formData, setFormData] = useState({ url: '', descricao: '', visible: true });
+    const [confirmModal, setConfirmModal] = useState<{ isOpen: boolean; id: string | null }>({ isOpen: false, id: null });
 
     useEffect(() => {
         fetchImages();
@@ -65,16 +68,22 @@ const AdminGallery: React.FC = () => {
         setFormData({ url: '', descricao: '', visible: true });
     };
 
-    const handleDelete = async (id: string) => {
-        if (!window.confirm('Tem certeza que deseja excluir esta imagem?')) return;
+    const handleDeleteClick = (id: string) => {
+        setConfirmModal({ isOpen: true, id });
+    };
 
+    const handleConfirmDelete = async () => {
+        if (!confirmModal.id) return;
         try {
-            const { error } = await supabase.from('galeria').delete().eq('id', id);
+            const { error } = await supabase.from('galeria').delete().eq('id', confirmModal.id);
             if (error) throw error;
             fetchImages();
+            toast.success('Imagem excluída com sucesso.');
         } catch (error) {
             console.error('Erro ao excluir:', error);
-            alert('Erro ao excluir imagem.');
+            toast.error('Erro ao excluir imagem.');
+        } finally {
+            setConfirmModal({ isOpen: false, id: null });
         }
     };
 
@@ -110,7 +119,7 @@ const AdminGallery: React.FC = () => {
             fetchImages();
         } catch (error) {
             console.error('Erro ao salvar:', error);
-            alert('Erro ao salvar imagem. Verifique se a coluna "visible" existe na tabela.');
+            toast.error('Erro ao salvar imagem. Verifique se a coluna "visible" existe na tabela.');
         }
     };
 
@@ -273,7 +282,7 @@ const AdminGallery: React.FC = () => {
                                                 <ImageIcon className="w-4 h-4" />
                                             </button>
                                             <button
-                                                onClick={() => handleDelete(item.id)}
+                                                onClick={() => handleDeleteClick(item.id)}
                                                 className="p-2 bg-red-500/20 text-red-500 rounded-full hover:bg-red-500 hover:text-white transition-colors"
                                             >
                                                 <Trash className="w-4 h-4" />
@@ -300,6 +309,14 @@ const AdminGallery: React.FC = () => {
                     </motion.div>
                 )}
             </AnimatePresence>
+            <ConfirmModal
+                isOpen={confirmModal.isOpen}
+                onClose={() => setConfirmModal({ isOpen: false, id: null })}
+                onConfirm={handleConfirmDelete}
+                title="Excluir Imagem"
+                message="Tem certeza que deseja excluir esta imagem? Esta ação não pode ser desfeita."
+                confirmText="Excluir Imagem"
+            />
         </div>
     );
 };

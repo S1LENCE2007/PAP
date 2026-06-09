@@ -1,9 +1,11 @@
+import toast from 'react-hot-toast';
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../utils/supabase';
 import { Calendar as CalendarIcon, CheckCircle, AlertCircle, X, Repeat, Loader } from 'lucide-react';
 import Calendar, { type CalendarEvent } from '../../components/Calendar';
 import { motion, AnimatePresence } from 'framer-motion';
+import ConfirmModal from '../../components/modals/ConfirmModal';
 
 const BarberDashboard: React.FC = () => {
     const { user } = useAuth();
@@ -25,6 +27,7 @@ const BarberDashboard: React.FC = () => {
     const [reschedulingApt, setReschedulingApt] = useState<any>(null);
     const [newDate, setNewDate] = useState('');
     const [newTime, setNewTime] = useState('');
+    const [confirmModal, setConfirmModal] = useState<{ isOpen: boolean; id: string | null; newStatus: string | null; message: string }>({ isOpen: false, id: null, newStatus: null, message: '' });
 
     useEffect(() => {
         if (!user) return;
@@ -150,20 +153,32 @@ const BarberDashboard: React.FC = () => {
         rawAppointment: apt
     }));
 
-    const handleStatusUpdate = async (id: string, newStatus: string) => {
-        if (!window.confirm(`Deseja alterar o status para "${newStatus}"?`)) return;
+    const handleStatusUpdateClick = (id: string, newStatus: string) => {
+        setConfirmModal({
+            isOpen: true,
+            id,
+            newStatus,
+            message: `Deseja alterar o status para "${newStatus}"?`
+        });
+    };
+
+    const handleConfirmStatusUpdate = async () => {
+        if (!confirmModal.id || !confirmModal.newStatus) return;
 
         try {
             const { error } = await supabase
                 .from('Marcacoes')
-                .update({ status: newStatus })
-                .eq('id', id);
+                .update({ status: confirmModal.newStatus })
+                .eq('id', confirmModal.id);
 
             if (error) throw error;
             fetchData(); // Refresh data
+            toast.success('Status atualizado com sucesso!');
         } catch (error) {
             console.error('Error updating status:', error);
-            alert('Erro ao atualizar status.');
+            toast.error('Erro ao atualizar status.');
+        } finally {
+            setConfirmModal({ isOpen: false, id: null, newStatus: null, message: '' });
         }
     };
 
@@ -185,7 +200,7 @@ const BarberDashboard: React.FC = () => {
                 )}
                 {(apt.status === 'marcado' || apt.status === 'pendente') && (
                     <button
-                        onClick={() => handleStatusUpdate(apt.id, 'confirmado')}
+                        onClick={() => handleStatusUpdateClick(apt.id, 'confirmado')}
                         className="flex-1 min-w-[120px] py-2 bg-green-500/10 text-green-500 rounded-lg hover:bg-green-500/20 transition-all font-bold flex items-center justify-center gap-2 border border-green-500/20"
                     >
                         <CheckCircle className="w-4 h-4" /> Confirmar
@@ -193,7 +208,7 @@ const BarberDashboard: React.FC = () => {
                 )}
                 {apt.status === 'confirmado' && (
                     <button
-                        onClick={() => handleStatusUpdate(apt.id, 'concluido')}
+                        onClick={() => handleStatusUpdateClick(apt.id, 'concluido')}
                         className="flex-1 min-w-[120px] py-2 bg-emerald-500/10 text-emerald-500 rounded-lg hover:bg-emerald-500/20 transition-all font-bold flex items-center justify-center gap-2 border border-emerald-500/20"
                     >
                         <CheckCircle className="w-4 h-4" /> Concluir
@@ -201,7 +216,7 @@ const BarberDashboard: React.FC = () => {
                 )}
                 {(apt.status === 'marcado' || apt.status === 'pendente' || apt.status === 'confirmado') && (
                     <button
-                        onClick={() => handleStatusUpdate(apt.id, 'cancelado')}
+                        onClick={() => handleStatusUpdateClick(apt.id, 'cancelado')}
                         className="flex-1 min-w-[120px] py-2 bg-red-500/10 text-red-500 rounded-lg hover:bg-red-500/20 transition-all font-bold flex items-center justify-center gap-2 border border-red-500/20"
                     >
                         <X className="w-4 h-4" /> Cancelar
@@ -212,7 +227,7 @@ const BarberDashboard: React.FC = () => {
     };
 
     const handleRescheduleSubmit = async () => {
-        if (!newDate || !newTime) return alert('Por favor, selecione a nova data e hora.');
+        if (!newDate || !newTime) return toast('Por favor, selecione a nova data e hora.');
         const novaDataHora = `${newDate}T${newTime}:00`;
 
         try {
@@ -227,10 +242,10 @@ const BarberDashboard: React.FC = () => {
             setReschedulingApt(null);
             setNewDate('');
             setNewTime('');
-            alert('Marcação reagendada com sucesso!');
+            toast.success('Marcação reagendada com sucesso!');
         } catch (error) {
             console.error('Erro ao remarcar:', error);
-            alert('Erro ao remarcar a marcação.');
+            toast.error('Erro ao remarcar a marcação.');
         }
     };
 
@@ -336,6 +351,15 @@ const BarberDashboard: React.FC = () => {
                     </div>
                 )}
             </AnimatePresence>
+            <ConfirmModal
+                isOpen={confirmModal.isOpen}
+                onClose={() => setConfirmModal({ isOpen: false, id: null, newStatus: null, message: '' })}
+                onConfirm={handleConfirmStatusUpdate}
+                title="Atualizar Status"
+                message={confirmModal.message}
+                confirmText="Confirmar"
+                isDestructive={confirmModal.newStatus === 'cancelado'}
+            />
         </motion.div>
     );
 };

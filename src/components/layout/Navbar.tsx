@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Menu, X, Scissors, User, LogOut, ShoppingBag, Image, Phone, LayoutDashboard, Star, ChevronDown, Calendar, CheckCircle } from 'lucide-react';
+import { Menu, X, Scissors, User, LogOut, ShoppingBag, ShoppingCart, Image, Phone, LayoutDashboard, Star, ChevronDown, Calendar, CheckCircle } from 'lucide-react';
 import { clsx } from 'clsx';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../../contexts/AuthContext';
@@ -28,7 +28,6 @@ const Navbar: React.FC = () => {
         { name: 'Serviços', path: '/servicos', icon: Scissors },
         { name: 'Loja', path: '/loja', icon: ShoppingBag },
         { name: 'Galeria', path: '/galeria', icon: Image },
-        { name: 'Avaliações', path: '/avaliacoes', icon: Star },
         { name: 'Contactos', path: '/contato', icon: Phone },
         // Admin link moved to separate logic
     ];
@@ -82,26 +81,47 @@ const Navbar: React.FC = () => {
                                     </Link>
                                 );
                             })}
+                            {/* Marcação */}
                             <Link
                                 to="/agendar"
-                                className="ml-4 px-4 py-2 rounded-lg bg-primary text-black text-sm font-bold uppercase tracking-wide hover:bg-primary/90 hover:scale-105 transition-all duration-300 flex items-center gap-2 shadow-lg shadow-primary/10"
+                                className={clsx(
+                                    'px-3 py-2 rounded-md text-sm font-bold transition-colors duration-300 relative group flex items-center gap-2 text-primary'
+                                )}
                             >
                                 <Calendar className="w-4 h-4" />
                                 Marcação
+                                <span className={clsx(
+                                    "absolute bottom-0 left-0 w-full h-0.5 bg-primary transform origin-left transition-transform duration-300",
+                                    isActive('/agendar') ? "scale-x-100" : "scale-x-0 group-hover:scale-x-100"
+                                )} />
+                            </Link>
+
+                            {/* Carrinho */}
+                            <Link
+                                to="/loja/carrinho"
+                                className={clsx(
+                                    'px-3 py-2 rounded-md text-sm font-medium transition-colors duration-300 relative group flex items-center gap-2',
+                                    isActive('/loja/carrinho') ? 'text-primary' : 'text-gray-300 hover:text-primary'
+                                )}
+                            >
+                                <div className="relative">
+                                    <ShoppingCart className="w-4 h-4" />
+                                    {itemCount > 0 && (
+                                        <span className="absolute -top-2 -right-2 bg-primary text-dark text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center">
+                                            {itemCount}
+                                        </span>
+                                    )}
+                                </div>
+                                Carrinho
+                                <span className={clsx(
+                                    "absolute bottom-0 left-0 w-full h-0.5 bg-primary transform origin-left transition-transform duration-300",
+                                    isActive('/loja/carrinho') ? "scale-x-100" : "scale-x-0 group-hover:scale-x-100"
+                                )} />
                             </Link>
                         </div>
                     </div>
 
                     <div className="hidden md:flex items-center space-x-4 ml-12">
-                        <Link to="/loja/carrinho" className="relative text-gray-300 hover:text-primary transition-colors p-2">
-                            <ShoppingBag className="w-6 h-6" />
-                            {itemCount > 0 && (
-                                <span className="absolute top-0 right-0 bg-primary text-dark text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
-                                    {itemCount}
-                                </span>
-                            )}
-                        </Link>
-
                         {user ? (
                             <div className="relative">
                                 <button
@@ -109,7 +129,11 @@ const Navbar: React.FC = () => {
                                     className="flex items-center space-x-2 text-gray-300 hover:text-white focus:outline-none transition-colors"
                                 >
                                     <div className="w-8 h-8 rounded-full bg-gray-800 border border-gray-700 flex items-center justify-center overflow-hidden">
-                                        <User className="w-5 h-5 text-gray-400" />
+                                        {user.user_metadata?.avatar_url ? (
+                                            <img src={user.user_metadata.avatar_url} alt="Avatar" className="w-full h-full object-cover" />
+                                        ) : (
+                                            <User className="w-5 h-5 text-gray-400" />
+                                        )}
                                     </div>
                                     <span className="font-medium max-w-[100px] truncate hidden lg:block">
                                         {user.user_metadata?.nome || 'Cliente'}
@@ -131,6 +155,10 @@ const Navbar: React.FC = () => {
                                                 <p className="text-sm font-bold text-white truncate">{user.email}</p>
                                             </div>
 
+                                            <div className="px-4 py-1">
+                                                <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Minha Conta</p>
+                                            </div>
+
                                             <Link
                                                 to="/perfil"
                                                 onClick={() => setUserMenuOpen(false)}
@@ -138,6 +166,15 @@ const Navbar: React.FC = () => {
                                             >
                                                 <User className="w-4 h-4 mr-3" />
                                                 Meu Perfil
+                                            </Link>
+
+                                            <Link
+                                                to="/minhas-marcacoes"
+                                                onClick={() => setUserMenuOpen(false)}
+                                                className="flex items-center px-4 py-2 text-sm text-gray-300 hover:bg-gray-800 hover:text-primary transition-colors"
+                                            >
+                                                <Calendar className="w-4 h-4 mr-3" />
+                                                Minhas Marcações
                                             </Link>
 
                                             <Link
@@ -149,40 +186,41 @@ const Navbar: React.FC = () => {
                                                 Minhas Encomendas
                                             </Link>
 
+                                            <Link
+                                                to="/avaliacoes"
+                                                onClick={() => setUserMenuOpen(false)}
+                                                className="flex items-center px-4 py-2 text-sm text-gray-300 hover:bg-gray-800 hover:text-primary transition-colors"
+                                            >
+                                                <Star className="w-4 h-4 mr-3" />
+                                                Avaliações
+                                            </Link>
+
                                             {(isAdmin || role === 'barbeiro') && (
-                                                <Link
-                                                    to="/verificar-encomenda"
-                                                    onClick={() => setUserMenuOpen(false)}
-                                                    className="block px-4 py-2 text-sm text-gray-300 hover:bg-white/5 hover:text-primary flex items-center gap-2"
-                                                    role="menuitem"
-                                                >
-                                                    <CheckCircle className="w-4 h-4" />
-                                                    Validar Encomenda
-                                                </Link>
-                                            )}
+                                                <>
+                                                    <div className="border-t border-gray-800 my-2"></div>
+                                                    <div className="px-4 py-1">
+                                                        <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Área Restrita</p>
+                                                    </div>
 
+                                                    <Link
+                                                        to={isAdmin ? "/admin" : "/barbeiro"}
+                                                        onClick={() => setUserMenuOpen(false)}
+                                                        className="flex items-center px-4 py-2 text-sm text-gray-300 hover:bg-gray-800 hover:text-primary transition-colors"
+                                                    >
+                                                        <LayoutDashboard className="w-4 h-4 mr-3" />
+                                                        Painel de Controlo
+                                                    </Link>
 
-
-                                            {isAdmin && (
-                                                <Link
-                                                    to="/admin"
-                                                    onClick={() => setUserMenuOpen(false)}
-                                                    className="flex items-center px-4 py-2 text-sm text-gray-300 hover:bg-gray-800 hover:text-primary transition-colors"
-                                                >
-                                                    <LayoutDashboard className="w-4 h-4 mr-3" />
-                                                    Painel Admin
-                                                </Link>
-                                            )}
-
-                                            {role === 'barbeiro' && (
-                                                <Link
-                                                    to="/barbeiro"
-                                                    onClick={() => setUserMenuOpen(false)}
-                                                    className="flex items-center px-4 py-2 text-sm text-gray-300 hover:bg-gray-800 hover:text-primary transition-colors"
-                                                >
-                                                    <LayoutDashboard className="w-4 h-4 mr-3" />
-                                                    Painel Barbeiro
-                                                </Link>
+                                                    <Link
+                                                        to="/verificar-encomenda"
+                                                        onClick={() => setUserMenuOpen(false)}
+                                                        className="flex items-center px-4 py-2 text-sm text-gray-300 hover:bg-gray-800 hover:text-primary transition-colors"
+                                                        role="menuitem"
+                                                    >
+                                                        <CheckCircle className="w-4 h-4 mr-3" />
+                                                        Validar Encomendas
+                                                    </Link>
+                                                </>
                                             )}
 
                                             <div className="border-t border-gray-800 my-2"></div>
@@ -211,14 +249,6 @@ const Navbar: React.FC = () => {
                     </div>
 
                     <div className="-mr-2 flex md:hidden">
-                        <Link to="/loja/carrinho" className="relative text-gray-300 hover:text-primary transition-colors p-2 mr-2">
-                            <ShoppingBag className="w-6 h-6" />
-                            {itemCount > 0 && (
-                                <span className="absolute top-0 right-0 bg-primary text-dark text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
-                                    {itemCount}
-                                </span>
-                            )}
-                        </Link>
                         <button
                             onClick={() => setIsOpen(!isOpen)}
                             className="inline-flex items-center justify-center p-2 rounded-md text-gray-400 hover:text-white hover:bg-gray-700 focus:outline-none"
@@ -259,35 +289,99 @@ const Navbar: React.FC = () => {
                                 </Link>
                             ))}
 
+                            <Link
+                                to="/agendar"
+                                onClick={() => setIsOpen(false)}
+                                className={clsx(
+                                    'block px-4 py-3 rounded-lg text-base font-bold transition-colors text-primary bg-primary/10 hover:bg-primary/20'
+                                )}
+                            >
+                                <div className="flex items-center gap-3">
+                                    <Calendar className="w-5 h-5" />
+                                    Marcação
+                                </div>
+                            </Link>
+
+                            <Link
+                                to="/loja/carrinho"
+                                onClick={() => setIsOpen(false)}
+                                className={clsx(
+                                    'block px-4 py-3 rounded-lg text-base font-medium transition-colors',
+                                    isActive('/loja/carrinho')
+                                        ? 'text-primary bg-primary/10'
+                                        : 'text-gray-300 hover:text-white hover:bg-white/5'
+                                )}
+                            >
+                                <div className="flex items-center gap-3">
+                                    <ShoppingCart className="w-5 h-5" />
+                                    Carrinho
+                                    {itemCount > 0 && (
+                                        <span className="ml-auto bg-primary text-dark text-xs font-bold px-2 py-0.5 rounded-full">
+                                            {itemCount}
+                                        </span>
+                                    )}
+                                </div>
+                            </Link>
+
                             <div className="border-t border-gray-800 pt-4 mt-4 space-y-3">
                                 {user ? (
                                     <>
+                                        <div className="px-3 py-1 mt-2">
+                                            <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Minha Conta</p>
+                                        </div>
                                         <Link
                                             to="/perfil"
                                             onClick={() => setIsOpen(false)}
                                             className="block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:text-white hover:bg-gray-700"
                                         >
-                                            Meu Perfil
+                                            <div className="flex items-center gap-3"><User className="w-5 h-5" /> Meu Perfil</div>
                                         </Link>
 
-                                        {isAdmin && (
-                                            <Link
-                                                to="/admin"
-                                                onClick={() => setIsOpen(false)}
-                                                className="block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:text-white hover:bg-gray-700"
-                                            >
-                                                Painel Admin
-                                            </Link>
-                                        )}
+                                        <Link
+                                            to="/minhas-marcacoes"
+                                            onClick={() => setIsOpen(false)}
+                                            className="block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:text-white hover:bg-gray-700"
+                                        >
+                                            <div className="flex items-center gap-3"><Calendar className="w-5 h-5" /> Minhas Marcações</div>
+                                        </Link>
 
-                                        {role === 'barbeiro' && (
-                                            <Link
-                                                to="/barbeiro"
-                                                onClick={() => setIsOpen(false)}
-                                                className="block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:text-white hover:bg-gray-700"
-                                            >
-                                                Painel Barbeiro
-                                            </Link>
+                                        <Link
+                                            to="/minhas-encomendas"
+                                            onClick={() => setIsOpen(false)}
+                                            className="block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:text-white hover:bg-gray-700"
+                                        >
+                                            <div className="flex items-center gap-3"><ShoppingBag className="w-5 h-5" /> Minhas Encomendas</div>
+                                        </Link>
+
+                                        <Link
+                                            to="/avaliacoes"
+                                            onClick={() => setIsOpen(false)}
+                                            className="block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:text-white hover:bg-gray-700"
+                                        >
+                                            <div className="flex items-center gap-3"><Star className="w-5 h-5" /> Avaliações</div>
+                                        </Link>
+
+                                        {(isAdmin || role === 'barbeiro') && (
+                                            <>
+                                                <div className="border-t border-gray-800 my-2"></div>
+                                                <div className="px-3 py-1">
+                                                    <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Área Restrita</p>
+                                                </div>
+                                                <Link
+                                                    to={isAdmin ? "/admin" : "/barbeiro"}
+                                                    onClick={() => setIsOpen(false)}
+                                                    className="block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:text-white hover:bg-gray-700"
+                                                >
+                                                    <div className="flex items-center gap-3"><LayoutDashboard className="w-5 h-5" /> Painel de Controlo</div>
+                                                </Link>
+                                                <Link
+                                                    to="/verificar-encomenda"
+                                                    onClick={() => setIsOpen(false)}
+                                                    className="block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:text-white hover:bg-gray-700"
+                                                >
+                                                    <div className="flex items-center gap-3"><CheckCircle className="w-5 h-5" /> Validar Encomendas</div>
+                                                </Link>
+                                            </>
                                         )}
 
                                         <Link

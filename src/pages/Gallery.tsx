@@ -71,7 +71,7 @@ const Gallery: React.FC = () => {
                                         <ZoomIn className="w-6 h-6" />
                                     </button>
                                     <a
-                                        href="https://instagram.com"
+                                        href="https://www.instagram.com/barberyvandourado/"
                                         target="_blank"
                                         rel="noopener noreferrer"
                                         className="p-3 bg-dark rounded-full text-white hover:text-primary transition-colors"
@@ -95,7 +95,7 @@ const Gallery: React.FC = () => {
 
                 <div className="text-center mt-16">
                     <a
-                        href="https://instagram.com"
+                        href="https://www.instagram.com/barberyvandourado/"
                         target="_blank"
                         rel="noopener noreferrer"
                         className="btn-outline inline-flex items-center px-8 py-4 text-lg"

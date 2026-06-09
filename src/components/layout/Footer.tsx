@@ -50,7 +50,7 @@ const Footer: React.FC = () => {
                     <div>
                         <h3 className="font-bold text-lg mb-6 text-primary tracking-wide">Siga-nos</h3>
                         <div className="flex space-x-4">
-                            <a href="#" className="text-gray-400 hover:text-primary transition-colors duration-300 transform hover:scale-110">
+                            <a href="https://www.instagram.com/barberyvandourado/" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-primary transition-colors duration-300 transform hover:scale-110">
                                 <Instagram className="h-6 w-6" />
                             </a>
                             <a href="#" className="text-gray-400 hover:text-primary transition-colors duration-300 transform hover:scale-110">

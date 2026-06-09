@@ -1,7 +1,9 @@
+import toast from 'react-hot-toast';
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../../utils/supabase';
 import { Save, Loader, Edit, Trash, X, Search } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import ConfirmModal from '../../components/modals/ConfirmModal';
 import { useNavigate } from 'react-router-dom';
 
 interface UserProfile {
@@ -21,6 +23,7 @@ const AdminManage: React.FC = () => {
     const [editingId, setEditingId] = useState<string | null>(null);
     const [formData, setFormData] = useState<Partial<UserProfile>>({});
     const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+    const [confirmModal, setConfirmModal] = useState<{ isOpen: boolean; id: string | null }>({ isOpen: false, id: null });
 
     useEffect(() => {
         fetchUsers();
@@ -64,23 +67,22 @@ const AdminManage: React.FC = () => {
         setFormData({});
     };
 
-    const handleDelete = async (id: string) => {
-        if (!window.confirm('Tem certeza que deseja excluir este utilizador? Ao fazer isso, ele perderá o acesso.')) return;
+    const handleDeleteClick = (id: string) => {
+        setConfirmModal({ isOpen: true, id });
+    };
 
+    const handleConfirmDelete = async () => {
+        if (!confirmModal.id) return;
         try {
-            // Note: Deleting from auth.users usually cascades to profiles, but we can't delete auth.users from client easily 
-            // without a secure RPC function. However, assuming we just want to remove the profile or if there's a trigger...
-            // Standard practice: Delete from profiles? Or better, just delete profile and let Supabase handle auth if configured.
-            // CAUTION: Client-side delete of 'auth.users' is not possible.
-            // We will delete the profile row.
-            const { error } = await supabase.from('perfis').delete().eq('id', id);
+            const { error } = await supabase.from('perfis').delete().eq('id', confirmModal.id);
             if (error) throw error;
-
             fetchUsers();
-            alert('Utilizador removido com sucesso.');
+            toast.success('Utilizador removido com sucesso.');
         } catch (error: any) {
             console.error('Erro ao excluir:', error);
-            alert('Erro ao excluir utilizador: ' + error.message);
+            toast.error('Erro ao excluir utilizador: ' + error.message);
+        } finally {
+            setConfirmModal({ isOpen: false, id: null });
         }
     };
 
@@ -94,15 +96,15 @@ const AdminManage: React.FC = () => {
                 p_role: formData.role,
                 p_telemovel: formData.telemovel
             });
-
             if (error) {
                 console.error('RPC Error:', error);
 
                 // Fallback or detailed error message
                 if (error.message?.includes('function admin_update_user_v2') && error.message?.includes('does not exist')) {
-                    alert(
+                    toast.error(
                         'Erro: A função de atualização não foi encontrada no banco de dados.\n\n' +
-                        'Por favor, execute o script SQL "20251216_admin_update_user.sql" no Painel do Supabase para habilitar essa funcionalidade.'
+                        'Por favor, execute o script SQL "20251216_admin_update_user.sql" no Painel do Supabase para habilitar essa funcionalidade.',
+                        { duration: 8000 }
                     );
                 } else {
                     throw error;
@@ -112,10 +114,10 @@ const AdminManage: React.FC = () => {
 
             handleCancel();
             await fetchUsers();
-            alert('Utilizador atualizado com sucesso!');
+            toast.success('Utilizador atualizado com sucesso!');
         } catch (error: any) {
             console.error('Erro ao salvar:', error);
-            alert('Erro ao salvar utilizador: ' + error.message);
+            toast.error('Erro ao salvar utilizador: ' + error.message);
         }
     };
 
@@ -268,7 +270,7 @@ const AdminManage: React.FC = () => {
                                         {currentUserId !== user.id && (
                                             <>
                                                 <button onClick={() => handleEdit(user)} className="p-2 bg-blue-500/10 text-blue-400 rounded-lg hover:bg-blue-500/20"><Edit className="w-4 h-4" /></button>
-                                                <button onClick={() => handleDelete(user.id)} className="p-2 bg-red-500/10 text-red-400 rounded-lg hover:bg-red-500/20"><Trash className="w-4 h-4" /></button>
+                                                <button onClick={() => handleDeleteClick(user.id)} className="p-2 bg-red-500/10 text-red-400 rounded-lg hover:bg-red-500/20"><Trash className="w-4 h-4" /></button>
                                             </>
                                         )}
                                     </div>
@@ -295,6 +297,14 @@ const AdminManage: React.FC = () => {
                     </motion.div>
                 )}
             </AnimatePresence>
+            <ConfirmModal
+                isOpen={confirmModal.isOpen}
+                onClose={() => setConfirmModal({ isOpen: false, id: null })}
+                onConfirm={handleConfirmDelete}
+                title="Excluir Utilizador"
+                message="Tem certeza que deseja excluir este utilizador? Ao fazer isso, ele perderá o acesso permanentemente."
+                confirmText="Excluir Utilizador"
+            />
         </div>
     );
 };
