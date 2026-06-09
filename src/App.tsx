@@ -1,4 +1,4 @@
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { HashRouter as Router, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
 import { CartProvider } from './contexts/CartContext';
 import ScrollToTop from './components/layout/ScrollToTop';
@@ -40,7 +40,7 @@ function App() {
   return (
     <AuthProvider>
       <CartProvider>
-        <Router basename={import.meta.env.BASE_URL}>
+        <Router>
           <ScrollToTop />
           <Toaster 
             position="top-right"

@@ -113,9 +113,17 @@ const MyAppointments: React.FC = () => {
     const handleConfirmCancel = async () => {
         if (!confirmModal.id) return;
         try {
-            const { error } = await supabase.from('Marcacoes').delete().eq('id', confirmModal.id);
+            const { error } = await supabase
+                .from('Marcacoes')
+                .update({ status: 'cancelado' })
+                .eq('id', confirmModal.id);
+
             if (error) throw error;
-            setAppointments(prev => prev.filter(apt => apt.id !== confirmModal.id));
+
+            setAppointments(prev => prev.map(apt => 
+                apt.id === confirmModal.id ? { ...apt, status: 'cancelado' } : apt
+            ));
+            
             toast.success('Marcação cancelada com sucesso!');
         } catch (error) {
             console.error('Erro ao cancelar:', error);
