@@ -11,7 +11,6 @@ interface Product {
     nome: string;
     descricao: string;
     preco: number;
-    stock: number;
     imagem_url: string;
     categoria: string;
 }
@@ -55,7 +54,6 @@ const AdminProducts: React.FC = () => {
             nome: '',
             descricao: '',
             preco: 0,
-            stock: 999,
             imagem_url: '',
             categoria: 'Cabelo'
         });
