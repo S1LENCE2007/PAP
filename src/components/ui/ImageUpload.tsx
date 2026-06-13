@@ -11,6 +11,7 @@ interface ImageUploadProps {
     placeholder?: string;
     bucket?: string; // Nome do bucket no Supabase Storage
     folder?: string; // Pasta dentro do bucket
+    variant?: 'default' | 'avatar';
 }
 
 const ImageUpload: React.FC<ImageUploadProps> = ({
@@ -20,7 +21,8 @@ const ImageUpload: React.FC<ImageUploadProps> = ({
     className = "",
     placeholder = "Clique para carregar imagem",
     bucket = "imagens",
-    folder = "produtos"
+    folder = "produtos",
+    variant = "default"
 }) => {
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [loading, setLoading] = useState(false);
@@ -125,6 +127,81 @@ const ImageUpload: React.FC<ImageUploadProps> = ({
             processFile(e.dataTransfer.files[0]);
         }
     };
+
+    if (variant === 'avatar') {
+        return (
+            <div className={`flex flex-col items-center space-y-2 ${className}`}>
+                {label && <label className="text-sm text-gray-400 font-medium block text-center">{label}</label>}
+                
+                <div
+                    className={`relative cursor-pointer transition-all duration-200 border-2 border-dashed rounded-full overflow-hidden w-28 h-28 flex items-center justify-center
+                        ${dragActive ? 'border-primary bg-primary/10' : 'border-white/10 hover:border-primary/50 bg-black/40'}
+                        ${error ? 'border-red-500/50' : ''}
+                    `}
+                    onDragEnter={handleDrag}
+                    onDragLeave={handleDrag}
+                    onDragOver={handleDrag}
+                    onDrop={handleDrop}
+                    onClick={() => fileInputRef.current?.click()}
+                >
+                    <input
+                        type="file"
+                        ref={fileInputRef}
+                        className="hidden"
+                        accept="image/*"
+                        onChange={handleFileChange}
+                    />
+
+                    <AnimatePresence mode="wait">
+                        {loading ? (
+                            <motion.div
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                exit={{ opacity: 0 }}
+                                className="absolute inset-0 flex flex-col items-center justify-center text-primary bg-black/60"
+                            >
+                                <Loader className="w-5 h-5 animate-spin" />
+                            </motion.div>
+                        ) : value ? (
+                            <motion.div
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                exit={{ opacity: 0 }}
+                                className="relative w-full h-full group"
+                            >
+                                <img src={value} alt="Avatar Preview" className="w-full h-full object-cover rounded-full" />
+                                <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                    <Upload className="w-5 h-5 text-white" />
+                                </div>
+                                <button
+                                    type="button"
+                                    onClick={handleRemove}
+                                    className="absolute top-0 right-0 p-1 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors shadow-lg z-20"
+                                    title="Remover imagem"
+                                >
+                                    <X className="w-3 h-3" />
+                                </button>
+                            </motion.div>
+                        ) : (
+                            <motion.div
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                exit={{ opacity: 0 }}
+                                className="flex flex-col items-center justify-center text-gray-500 hover:text-primary transition-colors p-4 text-center"
+                            >
+                                <ImageIcon className="w-6 h-6 mb-1" />
+                                <span className="text-[10px] block opacity-60">Carregar</span>
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
+                </div>
+
+                {error && (
+                    <p className="text-[11px] text-red-500 text-center max-w-[200px]">{error}</p>
+                )}
+            </div>
+        );
+    }
 
     return (
         <div className={`space-y-2 ${className}`}>
