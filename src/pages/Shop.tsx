@@ -103,24 +103,16 @@ const Shop: React.FC = () => {
                                         <img
                                             src={product.imagem_url}
                                             alt={product.nome}
-                                            className={`w-full h-full object-cover transition-transform duration-700 group-hover:scale-110 ${product.stock === 0 ? 'grayscale opacity-50' : ''}`}
+                                            className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
                                         />
-                                        {product.stock === 0 ? (
-                                            <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
-                                                <span className="text-white font-bold bg-red-500/80 px-4 py-2 rounded-lg backdrop-blur-sm">
-                                                    Esgotado
-                                                </span>
-                                            </div>
-                                        ) : (
-                                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                                                <button
-                                                    onClick={() => setSelectedProduct(product)}
-                                                    className="btn-primary transform translate-y-4 group-hover:translate-y-0 transition-all flex items-center px-6 py-3 rounded-full"
-                                                >
-                                                    <Plus className="w-5 h-5 mr-2" /> Adicionar
-                                                </button>
-                                            </div>
-                                        )}
+                                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                            <button
+                                                onClick={() => setSelectedProduct(product)}
+                                                className="btn-primary transform translate-y-4 group-hover:translate-y-0 transition-all flex items-center px-6 py-3 rounded-full"
+                                            >
+                                                <Plus className="w-5 h-5 mr-2" /> Adicionar
+                                            </button>
+                                        </div>
                                         <div className="absolute top-4 right-4 bg-dark/80 backdrop-blur-sm px-3 py-1 rounded-lg border border-white/10">
                                             <span className="text-primary font-bold">{product.preco.toFixed(2)}€</span>
                                         </div>
@@ -129,20 +121,11 @@ const Shop: React.FC = () => {
                                         <div className="text-xs text-primary font-bold uppercase tracking-wider mb-2">{product.categoria}</div>
                                         <h3 className="text-lg font-bold text-white mb-2 line-clamp-1">{product.nome}</h3>
                                         <div className="mt-auto pt-4 flex flex-col gap-3">
-                                            {product.stock > 0 && product.stock <= 5 && (
-                                                <span className="text-xs text-orange-500 font-bold">
-                                                    Apenas {product.stock} unidades restantes!
-                                                </span>
-                                            )}
                                             <button
-                                                onClick={() => product.stock > 0 && setSelectedProduct(product)}
-                                                disabled={product.stock === 0}
-                                                className={`w-full py-3 border rounded-xl font-bold transition-all md:hidden flex justify-center items-center ${product.stock === 0
-                                                    ? 'bg-white/5 border-white/5 text-gray-500 cursor-not-allowed'
-                                                    : 'bg-dark-bg border-white/10 text-gray-300 hover:bg-primary hover:text-dark hover:border-primary'
-                                                    }`}
+                                                onClick={() => setSelectedProduct(product)}
+                                                className="w-full py-3 border rounded-xl font-bold transition-all md:hidden flex justify-center items-center bg-dark-bg border-white/10 text-gray-300 hover:bg-primary hover:text-dark hover:border-primary"
                                             >
-                                                {product.stock === 0 ? 'Esgotado' : <><ShoppingCart className="w-5 h-5 mr-2" /> Adicionar</>}
+                                                <ShoppingCart className="w-5 h-5 mr-2" /> Adicionar
                                             </button>
                                         </div>
                                     </div>
@@ -208,11 +191,6 @@ const Shop: React.FC = () => {
                                         {selectedProduct.descricao || "Nenhuma descrição disponível para este produto."}
                                     </p>
                                     
-                                    {selectedProduct.stock > 0 && selectedProduct.stock <= 5 && (
-                                        <div className="bg-orange-500/10 border border-orange-500/20 text-orange-500 px-4 py-3 rounded-xl mb-6 font-bold flex items-center">
-                                            Apenas {selectedProduct.stock} unidades restantes!
-                                        </div>
-                                    )}
                                 </div>
                                 
                                 <div className="mt-auto pt-6 border-t border-white/5">
@@ -221,14 +199,9 @@ const Shop: React.FC = () => {
                                             addToCart(selectedProduct);
                                             setSelectedProduct(null);
                                         }}
-                                        disabled={selectedProduct.stock === 0}
-                                        className={`w-full py-4 rounded-xl font-bold transition-all text-lg flex justify-center items-center ${
-                                            selectedProduct.stock === 0
-                                            ? 'bg-white/5 text-gray-500 cursor-not-allowed'
-                                            : 'btn-primary'
-                                        }`}
+                                        className="w-full py-4 rounded-xl font-bold transition-all text-lg flex justify-center items-center btn-primary"
                                     >
-                                        {selectedProduct.stock === 0 ? 'Esgotado' : <><ShoppingCart className="w-6 h-6 mr-3" /> Adicionar ao Carrinho</>}
+                                        <ShoppingCart className="w-6 h-6 mr-3" /> Adicionar ao Carrinho
                                     </button>
                                 </div>
                             </div>

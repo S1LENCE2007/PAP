@@ -55,7 +55,7 @@ const AdminProducts: React.FC = () => {
             nome: '',
             descricao: '',
             preco: 0,
-            stock: 0,
+            stock: 999,
             imagem_url: '',
             categoria: 'Cabelo'
         });
@@ -208,13 +208,6 @@ const AdminProducts: React.FC = () => {
                                             className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white focus:border-primary/50 focus:ring-1 focus:ring-primary/50 outline-none transition-all" required />
                                     </div>
                                     <div>
-                                        <label className="text-sm text-gray-400 font-medium ml-1 block mb-2">Stock Inicial</label>
-                                        <input type="number" name="stock" value={formData.stock || ''} onChange={handleChange}
-                                            className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white focus:border-primary/50 focus:ring-1 focus:ring-primary/50 outline-none transition-all" required />
-                                    </div>
-                                </div>
-                                <div className="space-y-4">
-                                    <div>
                                         <label className="text-sm text-gray-400 font-medium ml-1 block mb-2">Categoria</label>
                                         <select name="categoria" value={formData.categoria || 'Cabelo'} onChange={handleChange}
                                             className="w-full bg-black/40 border border-white/10 rounded-xl px-4 py-3 text-white focus:border-primary/50 focus:ring-1 focus:ring-primary/50 outline-none transition-all">
@@ -224,6 +217,8 @@ const AdminProducts: React.FC = () => {
                                             <option value="Outros">Outros</option>
                                         </select>
                                     </div>
+                                </div>
+                                <div className="space-y-4">
                                     <div className="pt-2">
                                         <ImageUpload
                                             value={formData.imagem_url}
@@ -291,8 +286,8 @@ const AdminProducts: React.FC = () => {
 
                                             <div className="mt-auto flex justify-between items-center pt-4 border-t border-white/5">
                                                 <span className="text-xl font-bold text-primary">{product.preco.toFixed(2)}€</span>
-                                                <span className={`px-2 py-1 rounded-lg text-xs font-bold ${product.stock > 0 ? 'bg-green-500/10 text-green-500' : 'bg-red-500/10 text-red-500'}`}>
-                                                    {product.stock} em stock
+                                                <span className="px-2 py-1 rounded-lg text-xs font-bold bg-green-500/10 text-green-500">
+                                                    Disponível
                                                 </span>
                                             </div>
                                         </div>

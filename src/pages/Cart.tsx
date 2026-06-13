@@ -15,7 +15,6 @@ const Cart: React.FC = () => {
     const [isCheckingOut, setIsCheckingOut] = React.useState(false);
     const navigate = useNavigate();
 
-
     if (items.length === 0) {
         return (
             <div className="min-h-screen bg-dark-bg">
@@ -79,8 +78,7 @@ const Cart: React.FC = () => {
                                         <span className="w-10 text-center text-white font-bold">{item.quantity}</span>
                                         <button
                                             onClick={() => updateQuantity(item.id, item.quantity + 1)}
-                                            disabled={item.quantity >= item.stock}
-                                            className={`p-3 transition-colors ${item.quantity >= item.stock ? 'text-gray-600 cursor-not-allowed bg-black/20' : 'text-gray-400 hover:text-white hover:bg-white/5'}`}
+                                            className="p-3 text-gray-400 hover:text-white hover:bg-white/5 transition-colors"
                                         >
                                             <Plus className="w-4 h-4" />
                                         </button>
