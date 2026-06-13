@@ -211,15 +211,17 @@ const Navbar: React.FC = () => {
                                                         Painel de Controlo
                                                     </Link>
 
-                                                    <Link
-                                                        to="/verificar-encomenda"
-                                                        onClick={() => setUserMenuOpen(false)}
-                                                        className="flex items-center px-4 py-2 text-sm text-gray-300 hover:bg-gray-800 hover:text-primary transition-colors"
-                                                        role="menuitem"
-                                                    >
-                                                        <CheckCircle className="w-4 h-4 mr-3" />
-                                                        Validar Encomendas
-                                                    </Link>
+                                                    {isAdmin && (
+                                                        <Link
+                                                            to="/verificar-encomenda"
+                                                            onClick={() => setUserMenuOpen(false)}
+                                                            className="flex items-center px-4 py-2 text-sm text-gray-300 hover:bg-gray-800 hover:text-primary transition-colors"
+                                                            role="menuitem"
+                                                        >
+                                                            <CheckCircle className="w-4 h-4 mr-3" />
+                                                            Validar Encomendas
+                                                        </Link>
+                                                    )}
                                                 </>
                                             )}
 
@@ -374,13 +376,15 @@ const Navbar: React.FC = () => {
                                                 >
                                                     <div className="flex items-center gap-3"><LayoutDashboard className="w-5 h-5" /> Painel de Controlo</div>
                                                 </Link>
-                                                <Link
-                                                    to="/verificar-encomenda"
-                                                    onClick={() => setIsOpen(false)}
-                                                    className="block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:text-white hover:bg-gray-700"
-                                                >
-                                                    <div className="flex items-center gap-3"><CheckCircle className="w-5 h-5" /> Validar Encomendas</div>
-                                                </Link>
+                                                {isAdmin && (
+                                                    <Link
+                                                        to="/verificar-encomenda"
+                                                        onClick={() => setIsOpen(false)}
+                                                        className="block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:text-white hover:bg-gray-700"
+                                                    >
+                                                        <div className="flex items-center gap-3"><CheckCircle className="w-5 h-5" /> Validar Encomendas</div>
+                                                    </Link>
+                                                )}
                                             </>
                                         )}
 
