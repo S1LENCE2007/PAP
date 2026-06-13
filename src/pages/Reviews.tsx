@@ -11,6 +11,7 @@ interface Review {
     created_at: string;
     perfis: {
         nome: string;
+        avatar_url?: string;
     };
 }
 
@@ -35,13 +36,13 @@ const Reviews: React.FC = () => {
                     nota,
                     comentario,
                     created_at,
-                    perfis (nome)
+                    perfis (nome, avatar_url)
                 `)
                 .order('created_at', { ascending: false });
 
             if (error) throw error;
 
-            type ProfileData = { nome: string };
+            type ProfileData = { nome: string; avatar_url?: string };
 
             interface ReviewData {
                 id: string;
@@ -56,7 +57,7 @@ const Reviews: React.FC = () => {
                 const perfis = Array.isArray(item.perfis) ? item.perfis[0] : item.perfis;
                 return {
                     ...item,
-                    perfis: perfis ? { nome: perfis.nome } : { nome: 'Cliente' }
+                    perfis: perfis ? { nome: perfis.nome, avatar_url: perfis.avatar_url } : { nome: 'Cliente' }
                 };
             });
 
@@ -197,9 +198,17 @@ const Reviews: React.FC = () => {
                             >
                                 <div className="flex justify-between items-start mb-6">
                                     <div className="flex items-center">
-                                        <div className="w-12 h-12 bg-dark-bg rounded-full flex items-center justify-center mr-4 border border-white/5 text-primary font-bold text-xl">
-                                            {review.perfis?.nome ? review.perfis.nome.charAt(0).toUpperCase() : <User className="w-6 h-6" />}
-                                        </div>
+                                        {review.perfis?.avatar_url ? (
+                                            <img 
+                                                src={review.perfis.avatar_url} 
+                                                alt={review.perfis.nome} 
+                                                className="w-12 h-12 rounded-full object-cover mr-4 border border-white/5"
+                                            />
+                                        ) : (
+                                            <div className="w-12 h-12 bg-dark-bg rounded-full flex items-center justify-center mr-4 border border-white/5 text-primary font-bold text-xl">
+                                                {review.perfis?.nome ? review.perfis.nome.charAt(0).toUpperCase() : <User className="w-6 h-6" />}
+                                            </div>
+                                        )}
                                         <div>
                                             <h4 className="font-bold text-white text-lg">{review.perfis?.nome || 'Cliente'}</h4>
                                             <span className="text-sm text-gray-500">{new Date(review.created_at).toLocaleDateString('pt-PT')}</span>
