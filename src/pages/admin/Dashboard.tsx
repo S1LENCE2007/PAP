@@ -139,7 +139,7 @@ const AdminDashboard: React.FC = () => {
                                                 </p>
                                                 <div className="flex flex-col sm:flex-row gap-1 sm:gap-3 text-xs text-gray-400 mt-0.5">
                                                     <span>{Array.isArray(apt.perfis) ? apt.perfis[0]?.telemovel : apt.perfis?.telemovel}</span>
-                                                    <span className="hidden sm:inline">â€¢</span>
+                                                    <span className="hidden sm:inline">•</span>
                                                     <span>{Array.isArray(apt.perfis) ? apt.perfis[0]?.email : apt.perfis?.email}</span>
                                                 </div>
                                                 <p className="text-sm text-primary mt-1">
