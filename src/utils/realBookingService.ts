@@ -130,13 +130,18 @@ export const getRealAvailableSlots = async (
             isAvailable = false; // Cannot book in the past
         } else {
             // Check availability logic
-            // We look for ONE barber who is free for the entire duration [currentTime, slotEnd]
+            // We look for all barbers who are free for the entire duration [currentTime, slotEnd]
+            const freeBarbers: string[] = [];
             for (const bId of allBarbers) {
                 if (!isBarberBusy(bId, currentTime, slotEnd)) {
-                    isAvailable = true;
-                    candidateBarber = bId;
-                    break; // Found one, that's enough to show the slot as available
+                    freeBarbers.push(bId);
                 }
+            }
+            if (freeBarbers.length > 0) {
+                isAvailable = true;
+                // Randomly pick one of the available barbers
+                const randomIndex = Math.floor(Math.random() * freeBarbers.length);
+                candidateBarber = freeBarbers[randomIndex];
             }
         }
 

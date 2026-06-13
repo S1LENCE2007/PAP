@@ -27,7 +27,7 @@ const BarberLayout: React.FC = () => {
                     .eq('id', user.id)
                     .single();
 
-                if (profile?.role !== 'barbeiro') {
+                if (profile?.role !== 'barbeiro' && profile?.role !== 'admin') {
                     navigate('/');
                 }
             };

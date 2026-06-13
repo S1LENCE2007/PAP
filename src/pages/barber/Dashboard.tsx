@@ -8,7 +8,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import ConfirmModal from '../../components/modals/ConfirmModal';
 
 const BarberDashboard: React.FC = () => {
-    const { user } = useAuth();
+    const { user, isAdmin } = useAuth();
     const [appointments, setAppointments] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [stats, setStats] = useState({
@@ -37,29 +37,33 @@ const BarberDashboard: React.FC = () => {
     const fetchData = async () => {
         if (!user) return;
         try {
-            // 1. Get Barber ID
-            const { data: barberData, error: barberError } = await supabase
-                .from('barbeiros')
-                .select('id')
-                .eq('id', user.id)
-                .single();
-
-            if (barberError || !barberData) {
-                console.error("Barber not found linked to this user");
-                setLoading(false);
-                return;
-            }
-
-            // 2. Fetch Appointments
-            const { data, error } = await supabase
+            let query = supabase
                 .from('Marcacoes')
                 .select(`
                     *,
                     servico:servicos(nome, duracao, preco),
-                    cliente:perfis(nome, telemovel, email)
-                `)
-                .eq('barbeiro_id', barberData.id)
-                .order('data_hora', { ascending: true }); // Closest first
+                    cliente:perfis(nome, telemovel, email),
+                    barbeiros (nome)
+                `);
+
+            if (!isAdmin) {
+                // 1. Get Barber ID for the non-admin barber
+                const { data: barberData, error: barberError } = await supabase
+                    .from('barbeiros')
+                    .select('id')
+                    .eq('id', user.id)
+                    .single();
+
+                if (barberError || !barberData) {
+                    console.error("Barber not found linked to this user");
+                    setLoading(false);
+                    return;
+                }
+                query = query.eq('barbeiro_id', barberData.id);
+            }
+
+            // 2. Fetch Appointments
+            const { data, error } = await query.order('data_hora', { ascending: true }); // Closest first
 
             if (error) throw error;
             const now = new Date();
@@ -141,7 +145,14 @@ const BarberDashboard: React.FC = () => {
     const calendarEvents: CalendarEvent[] = appointments.map(apt => ({
         id: apt.id,
         title: apt.cliente?.nome || 'Cliente',
-        subtitle: apt.servico?.nome || 'Serviço',
+        subtitle: (() => {
+            const serviceName = apt.servico?.nome || 'Serviço';
+            if (isAdmin) {
+                const bData = Array.isArray(apt.barbeiros) ? apt.barbeiros[0] : apt.barbeiros;
+                return `${serviceName} (${bData?.nome || 'Sem Barbeiro'})`;
+            }
+            return serviceName;
+        })(),
         start: new Date(apt.data_hora),
         end: new Date(new Date(apt.data_hora).getTime() + (apt.servico?.duracao || 30) * 60000),
         status: apt.status,
