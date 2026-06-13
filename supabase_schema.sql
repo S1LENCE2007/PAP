@@ -1,15 +1,15 @@
 -- Enable UUID extension
 create extension if not exists "uuid-ossp";
-create extension if not exists "pgcrypto"; -- Added pgcrypto
+create extension if not exists "pgcrypto";
 
 -- 1. Tabela de Perfis (Profiles)
--- Extends the default auth.users table
 create table public.perfis (
   id uuid references auth.users not null primary key,
   nome text,
   email text,
   telemovel text,
   role text check (role in ('cliente', 'admin', 'barbeiro')) default 'cliente',
+  avatar_url text,
   created_at timestamp with time zone default timezone('utc'::text, now()) not null
 );
 
@@ -35,8 +35,7 @@ create table public.servicos (
 -- RLS for Servicos
 alter table public.servicos enable row level security;
 create policy "Services are viewable by everyone." on public.servicos for select using (true);
-create policy "Admins can insert services." on public.servicos for insert with check (exists (select 1 from public.perfis where id = auth.uid() and role = 'admin'));
-create policy "Admins can update services." on public.servicos for update using (exists (select 1 from public.perfis where id = auth.uid() and role = 'admin'));
+create policy "Admins can manage services." on public.servicos for all using (exists (select 1 from public.perfis where id = auth.uid() and role = 'admin'));
 
 -- 3. Tabela de Barbeiros (Barbers)
 create table public.barbeiros (
@@ -45,7 +44,7 @@ create table public.barbeiros (
   bio text,
   foto_url text,
   disponivel boolean default true,
-  user_id uuid references auth.users(id), -- Added user_id link
+  user_id uuid references auth.users(id),
   created_at timestamp with time zone default timezone('utc'::text, now()) not null
 );
 
@@ -54,30 +53,30 @@ alter table public.barbeiros enable row level security;
 create policy "Barbers are viewable by everyone." on public.barbeiros for select using (true);
 create policy "Admins can manage barbers." on public.barbeiros for all using (exists (select 1 from public.perfis where id = auth.uid() and role = 'admin'));
 
--- 4. Tabela de Agendamentos (Appointments)
-create table public.agendamentos (
+-- 4. Tabela de Marcações (Appointments - Renamed from agendamentos)
+create table public."Marcacoes" (
   id uuid default uuid_generate_v4() primary key,
   cliente_id uuid references public.perfis(id),
   barbeiro_id uuid references public.barbeiros(id),
   servico_id uuid references public.servicos(id),
   data_hora timestamp with time zone not null,
-  status text check (status in ('pendente', 'confirmado', 'cancelado')) default 'pendente',
+  status text check (status in ('pendente', 'confirmado', 'cancelado', 'marcado', 'concluido')) default 'pendente',
   created_at timestamp with time zone default timezone('utc'::text, now()) not null
 );
 
--- RLS for Agendamentos
-alter table public.agendamentos enable row level security;
-create policy "Users can view their own appointments." on public.agendamentos for select using (auth.uid() = cliente_id);
-create policy "Admins can view all appointments." on public.agendamentos for select using (exists (select 1 from public.perfis where id = auth.uid() and role = 'admin'));
-create policy "Users can insert their own appointments." on public.agendamentos for insert with check (auth.uid() = cliente_id);
+-- RLS for Marcacoes
+alter table public."Marcacoes" enable row level security;
+create policy "Users can view their own appointments." on public."Marcacoes" for select using (auth.uid() = cliente_id);
+create policy "Admins and barbers can view all appointments." on public."Marcacoes" for select using (exists (select 1 from public.perfis where id = auth.uid() and role in ('admin', 'barbeiro')));
+create policy "Users can insert their own appointments." on public."Marcacoes" for insert with check (auth.uid() = cliente_id);
+create policy "Admins and barbers can manage appointments." on public."Marcacoes" for all using (exists (select 1 from public.perfis where id = auth.uid() and role in ('admin', 'barbeiro')));
 
--- 5. Tabela de Produtos (Products)
+-- 5. Tabela de Produtos (Products - No stock constraint)
 create table public.produtos (
   id uuid default uuid_generate_v4() primary key,
   nome text not null,
   descricao text,
   preco numeric not null,
-  stock integer default 0,
   imagem_url text,
   categoria text,
   created_at timestamp with time zone default timezone('utc'::text, now()) not null
@@ -102,11 +101,46 @@ alter table public.avaliacoes enable row level security;
 create policy "Reviews are viewable by everyone." on public.avaliacoes for select using (true);
 create policy "Users can insert their own reviews." on public.avaliacoes for insert with check (auth.uid() = cliente_id);
 
+-- 7. Tabela de Galeria (Gallery)
+create table public.galeria (
+  id uuid default uuid_generate_v4() primary key,
+  url text not null,
+  descricao text,
+  categoria text,
+  visible boolean default true,
+  created_at timestamp with time zone default timezone('utc'::text, now()) not null
+);
+
+-- RLS for Galeria
+alter table public.galeria enable row level security;
+create policy "Gallery images are viewable by everyone." on public.galeria for select using (true);
+create policy "Admins can manage gallery images." on public.galeria for all using (exists (select 1 from public.perfis where id = auth.uid() and role = 'admin'));
+
+-- 8. Tabela de Encomendas (Orders)
+create table public.encomendas (
+  id uuid default uuid_generate_v4() primary key,
+  cliente_id uuid references public.perfis(id),
+  itens jsonb not null,
+  total numeric not null,
+  codigo text not null,
+  status text check (status in ('pendente', 'concluido')) default 'pendente',
+  created_at timestamp with time zone default timezone('utc'::text, now()) not null
+);
+
+-- RLS for Encomendas
+alter table public.encomendas enable row level security;
+create policy "Users can view their own orders." on public.encomendas for select using (auth.uid() = cliente_id);
+create policy "Admins and barbers can view all orders." on public.encomendas for select using (exists (select 1 from public.perfis where id = auth.uid() and role in ('admin', 'barbeiro')));
+create policy "Users can insert their own orders." on public.encomendas for insert with check (auth.uid() = cliente_id);
+create policy "Admins and barbers can update orders." on public.encomendas for update using (exists (select 1 from public.perfis where id = auth.uid() and role in ('admin', 'barbeiro')));
+
+
+-- Functions and Triggers
 -- Trigger to create profile on signup
 create or replace function public.handle_new_user()
 returns trigger as $$
 begin
-  insert into public.perfis (id, nome, email, telemovel, role)
+  insert into public.perfis (id, nome, email, telemovel, role, avatar_url)
   values (
     new.id, 
     new.raw_user_meta_data->>'nome',
@@ -115,7 +149,8 @@ begin
     case 
       when new.email like '%@dourado.com' then 'barbeiro'
       else 'cliente'
-    end
+    end,
+    null
   );
   return new;
 end;
