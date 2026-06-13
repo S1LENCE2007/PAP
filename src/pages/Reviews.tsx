@@ -87,8 +87,7 @@ const Reviews: React.FC = () => {
                     {
                         cliente_id: user.id,
                         nota: rating,
-                        comentario: comment,
-                        barbeiro_id: null // General review for now
+                        comentario: comment
                     }
                 ]);
 
