@@ -34,6 +34,32 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
+-- 4. Garantir que o bucket de imagens existe e configurar as políticas RLS de Storage
+-- Garante que o bucket "imagens" existe e é público para permitir exibição direta
+INSERT INTO storage.buckets (id, name, public)
+VALUES ('imagens', 'imagens', true)
+ON CONFLICT (id) DO UPDATE SET public = true;
+
+-- Remover políticas antigas para evitar conflitos de duplicação
+DROP POLICY IF EXISTS "Permitir leitura publica de imagens" ON storage.objects;
+DROP POLICY IF EXISTS "Permitir upload publico de imagens" ON storage.objects;
+DROP POLICY IF EXISTS "Permitir update publico de imagens" ON storage.objects;
+DROP POLICY IF EXISTS "Permitir delete publico de imagens" ON storage.objects;
+
+-- Criar novas políticas públicas para o bucket 'imagens'
+-- Isto permite que utilizadores não registados (no formulário de registo) enviem a foto de perfil
+CREATE POLICY "Permitir leitura publica de imagens" ON storage.objects 
+  FOR SELECT USING (bucket_id = 'imagens');
+
+CREATE POLICY "Permitir upload publico de imagens" ON storage.objects 
+  FOR INSERT WITH CHECK (bucket_id = 'imagens');
+
+CREATE POLICY "Permitir update publico de imagens" ON storage.objects 
+  FOR UPDATE USING (bucket_id = 'imagens');
+
+CREATE POLICY "Permitir delete publico de imagens" ON storage.objects 
+  FOR DELETE USING (bucket_id = 'imagens');
+
 COMMIT;
 
 -- Exibir mensagem de sucesso

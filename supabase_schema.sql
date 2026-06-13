@@ -237,3 +237,30 @@ begin
     values (p_nome, p_bio, p_foto_url, v_user_id, true);
 end;
 $$ language plpgsql;
+
+
+-- 9. Políticas para Armazenamento (Supabase Storage - Bucket "imagens")
+-- Garante que o bucket "imagens" existe e é público para permitir a leitura direta dos ficheiros
+INSERT INTO storage.buckets (id, name, public)
+VALUES ('imagens', 'imagens', true)
+ON CONFLICT (id) DO UPDATE SET public = true;
+
+-- Remover políticas antigas para evitar conflitos de duplicação
+DROP POLICY IF EXISTS "Permitir leitura publica de imagens" ON storage.objects;
+DROP POLICY IF EXISTS "Permitir upload publico de imagens" ON storage.objects;
+DROP POLICY IF EXISTS "Permitir update publico de imagens" ON storage.objects;
+DROP POLICY IF EXISTS "Permitir delete publico de imagens" ON storage.objects;
+
+-- Criar novas políticas públicas para o bucket 'imagens'
+CREATE POLICY "Permitir leitura publica de imagens" ON storage.objects 
+  FOR SELECT USING (bucket_id = 'imagens');
+
+CREATE POLICY "Permitir upload publico de imagens" ON storage.objects 
+  FOR INSERT WITH CHECK (bucket_id = 'imagens');
+
+CREATE POLICY "Permitir update publico de imagens" ON storage.objects 
+  FOR UPDATE USING (bucket_id = 'imagens');
+
+CREATE POLICY "Permitir delete publico de imagens" ON storage.objects 
+  FOR DELETE USING (bucket_id = 'imagens');
+
