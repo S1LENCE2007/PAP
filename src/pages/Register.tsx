@@ -124,7 +124,7 @@ const Register: React.FC = () => {
                 />
             </div>
             <motion.div
-                className="max-w-2xl w-full bg-card-bg p-8 rounded-2xl border border-white/5 shadow-2xl relative z-10"
+                className="max-w-4xl w-full bg-card-bg p-8 rounded-2xl border border-white/5 shadow-2xl relative z-10"
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5 }}
@@ -144,21 +144,9 @@ const Register: React.FC = () => {
                 )}
 
                 <form onSubmit={handleRegister} className="space-y-5">
-                    {/* Centered Profile Picture Upload */}
-                    <div className="flex justify-center mb-4">
-                        <ImageUpload
-                            value={formData.avatar_url}
-                            onChange={(url) => setFormData({ ...formData, avatar_url: url })}
-                            bucket="imagens"
-                            folder="perfis"
-                            label="Foto de Perfil (Opcional)"
-                            variant="avatar"
-                        />
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {/* Nome Completo (spans 2 columns) */}
-                        <div className="md:col-span-2">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
+                        {/* Nome Completo */}
+                        <div>
                             <label className="block text-sm font-medium text-gray-400 mb-1">Nome Completo <span className="text-red-500">*</span></label>
                             <div className="relative">
                                 <User className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-500 w-5 h-5" />
@@ -174,8 +162,19 @@ const Register: React.FC = () => {
                             </div>
                         </div>
 
+                        {/* Foto de Perfil (Opcional) - no right side on desktop, spans 3 rows */}
+                        <div className="md:row-span-3 md:col-start-2 md:row-start-1">
+                            <ImageUpload
+                                value={formData.avatar_url}
+                                onChange={(url) => setFormData({ ...formData, avatar_url: url })}
+                                bucket="imagens"
+                                folder="perfis"
+                                label="Foto de Perfil (Opcional)"
+                            />
+                        </div>
+
                         {/* Telemóvel */}
-                        <div>
+                        <div className="md:col-start-1">
                             <label className="block text-sm font-medium text-gray-400 mb-1">Telemóvel <span className="text-red-500">*</span></label>
                             <div className="relative">
                                 <Phone className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-500 w-5 h-5" />
@@ -192,7 +191,7 @@ const Register: React.FC = () => {
                         </div>
 
                         {/* Email */}
-                        <div>
+                        <div className="md:col-start-1">
                             <label className="block text-sm font-medium text-gray-400 mb-1">Email <span className="text-red-500">*</span></label>
                             <div className="relative">
                                 <Mail className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-500 w-5 h-5" />
