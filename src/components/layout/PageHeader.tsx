@@ -1,5 +1,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
+import { useLocation } from 'react-router-dom';
+import defaultBannerImage from '../../imagens/Barbiaria.jpg';
 
 interface PageHeaderProps {
     title: React.ReactNode;
@@ -12,16 +14,20 @@ interface PageHeaderProps {
 const PageHeader: React.FC<PageHeaderProps> = ({
     title,
     subtitle,
-    backgroundImage = "https://images.unsplash.com/photo-1503951914875-452162b7f30a?auto=format&fit=crop&q=80&w=2070",
+    backgroundImage,
     height = "h-[60vh]",
     children
 }) => {
+    const location = useLocation();
+    const isShopPage = location.pathname === '/loja';
+    const bannerSrc = isShopPage ? (backgroundImage || defaultBannerImage) : defaultBannerImage;
+
     return (
         <div className={`relative ${height} flex items-center justify-center overflow-hidden border-b border-white/5`}>
             <div className="absolute inset-0 z-0">
                 <div className="absolute inset-0 bg-black/70 z-10" />
                 <motion.img
-                    src={backgroundImage}
+                    src={bannerSrc}
                     alt="Background"
                     className="w-full h-full object-cover"
                     initial={{ scale: 1.1 }}
