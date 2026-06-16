@@ -6,6 +6,7 @@ import { supabase } from '../../utils/supabase';
 import { format } from 'date-fns';
 import clsx from 'clsx';
 import { getRealAvailableSlots, type TimeSlot } from '../../utils/realBookingService';
+import { useAuth } from '../../contexts/AuthContext';
 
 interface RescheduleModalProps {
     isOpen: boolean;
@@ -26,11 +27,13 @@ const RescheduleModal: React.FC<RescheduleModalProps> = ({
     currentDateHora,
     onSuccess
 }) => {
+    const { user, role } = useAuth();
     interface Barber { id: string; nome: string; }
     interface Service { id: string; nome: string; duracao: number; }
 
     const [barbers, setBarbers] = useState<Barber[]>([]);
     const [services, setServices] = useState<Service[]>([]);
+    const [appointmentDetails, setAppointmentDetails] = useState<{ cliente_id: string } | null>(null);
 
     const [selectedBarberId, setSelectedBarberId] = useState<string>(currentBarberId);
     const [selectedServiceId, setSelectedServiceId] = useState<string>(currentServiceId);
@@ -42,6 +45,7 @@ const RescheduleModal: React.FC<RescheduleModalProps> = ({
 
     const [selectedDate, setSelectedDate] = useState<string>(initialDate);
     const [selectedTime, setSelectedTime] = useState<string>(initialTime);
+    const [selectedSlotBarberId, setSelectedSlotBarberId] = useState<string | null>(null);
 
     const [availableSlots, setAvailableSlots] = useState<TimeSlot[]>([]);
     const [isLoadingSlots, setIsLoadingSlots] = useState(false);
@@ -53,13 +57,21 @@ const RescheduleModal: React.FC<RescheduleModalProps> = ({
 
         const fetchData = async () => {
             try {
-                const [barbersRes, servicesRes] = await Promise.all([
+                const [barbersRes, servicesRes, aptRes] = await Promise.all([
                     supabase.from('barbeiros').select('*').eq('disponivel', true),
-                    supabase.from('servicos').select('*').eq('ativo', true)
+                    supabase.from('servicos').select('*').eq('ativo', true),
+                    supabase.from('Marcacoes').select('cliente_id').eq('id', appointmentId).maybeSingle()
                 ]);
 
-                if (barbersRes.data) setBarbers(barbersRes.data);
+                if (barbersRes.data) {
+                    let activeBarbers = [...barbersRes.data];
+
+                    const sortedBarbers = activeBarbers.sort((a, b) => a.nome.localeCompare(b.nome));
+                    const anyBarber: Barber = { id: 'any', nome: 'Qualquer Profissional' };
+                    setBarbers([anyBarber, ...sortedBarbers]);
+                }
                 if (servicesRes.data) setServices(servicesRes.data);
+                if (aptRes.data) setAppointmentDetails(aptRes.data);
 
                 // Reset state when modal opens
                 setSelectedBarberId(currentBarberId);
@@ -75,7 +87,7 @@ const RescheduleModal: React.FC<RescheduleModalProps> = ({
         };
 
         fetchData();
-    }, [isOpen, currentBarberId, currentServiceId, currentDateHora]);
+    }, [isOpen, currentBarberId, currentServiceId, currentDateHora, appointmentId, role, user]);
 
     // Fetch slots when date, barber or service changes
     useEffect(() => {
@@ -91,7 +103,8 @@ const RescheduleModal: React.FC<RescheduleModalProps> = ({
                     selectedDate,
                     duration,
                     selectedBarberId,
-                    appointmentId // ignore this specific booking to free up its slot!
+                    appointmentId, // ignore this specific booking to free up its slot!
+                    appointmentDetails?.cliente_id
                 );
 
                 setAvailableSlots(slots);
@@ -99,7 +112,13 @@ const RescheduleModal: React.FC<RescheduleModalProps> = ({
                 // Keep the selected time if it's still available, otherwise reset
                 setSelectedTime((prev) => {
                     const stillAvailable = slots.some(s => s.time === prev && s.available);
-                    return stillAvailable ? prev : '';
+                    if (stillAvailable) {
+                        const matchedSlot = slots.find(s => s.time === prev);
+                        setSelectedSlotBarberId(matchedSlot?.barberId || null);
+                        return prev;
+                    }
+                    setSelectedSlotBarberId(null);
+                    return '';
                 });
             } catch (err) {
                 console.error('Error fetching slots:', err);
@@ -109,23 +128,54 @@ const RescheduleModal: React.FC<RescheduleModalProps> = ({
         };
 
         fetchSlots();
-    }, [selectedDate, selectedBarberId, selectedServiceId, isOpen, services, appointmentId]);
+    }, [selectedDate, selectedBarberId, selectedServiceId, isOpen, services, appointmentId, appointmentDetails?.cliente_id]);
 
     const handleSubmit = async () => {
-        if (!selectedDate || !selectedTime || !selectedBarberId || !selectedServiceId) {
-            toast.error('Por favor, preencha todos os campos.');
+        let finalBarberId = selectedBarberId === 'any' ? selectedSlotBarberId : selectedBarberId;
+
+        if (!selectedDate || !selectedTime || !finalBarberId || !selectedServiceId) {
+            toast.error('Por favor, selecione um horário disponível.');
             return;
         }
 
         setIsSubmitting(true);
         try {
+            // If the assigned barber is the client themselves, and they are a barber, automatically assign to admin
+            if (appointmentDetails?.cliente_id && finalBarberId === appointmentDetails.cliente_id) {
+                const { data: custProfile } = await supabase
+                    .from('perfis')
+                    .select('role')
+                    .eq('id', appointmentDetails.cliente_id)
+                    .single();
+                
+                if (custProfile && custProfile.role === 'barbeiro') {
+                    const { data: admins } = await supabase
+                        .from('perfis')
+                        .select('id')
+                        .eq('role', 'admin')
+                        .limit(1);
+                    if (admins && admins.length > 0) {
+                        const { data: barber } = await supabase
+                            .from('barbeiros')
+                            .select('id')
+                            .eq('id', admins[0].id)
+                            .maybeSingle();
+                        if (barber) {
+                            finalBarberId = barber.id;
+                        } else {
+                            finalBarberId = admins[0].id;
+                        }
+                    }
+                }
+            }
+
             const dateTimeString = `${selectedDate}T${selectedTime}:00`;
             const dateObj = new Date(dateTimeString);
 
             const { error } = await supabase
                 .from('Marcacoes')
                 .update({
-                    barbeiro_id: selectedBarberId,
+                    barbeiro_id: finalBarberId,
                     servico_id: selectedServiceId,
                     data_hora: dateObj.toISOString(),
                     status: 'pendente' // Remarcando volta para pendente
@@ -143,7 +193,6 @@ const RescheduleModal: React.FC<RescheduleModalProps> = ({
             setIsSubmitting(false);
         }
     };
-
     if (!isOpen) return null;
 
     const morningSlots = availableSlots.filter(s => parseInt(s.time.split(':')[0]) < 12 && s.available);
@@ -191,7 +240,11 @@ const RescheduleModal: React.FC<RescheduleModalProps> = ({
                                 </label>
                                 <select
                                     value={selectedBarberId}
-                                    onChange={(e) => setSelectedBarberId(e.target.value)}
+                                    onChange={(e) => {
+                                        setSelectedBarberId(e.target.value);
+                                        setSelectedSlotBarberId(null);
+                                        setSelectedTime('');
+                                    }}
                                     className="w-full bg-black/40 border border-white/10 rounded-xl p-3 text-white outline-none focus:border-primary/50 transition-colors"
                                 >
                                     <option value="" disabled>Selecione um profissional</option>
@@ -263,7 +316,10 @@ const RescheduleModal: React.FC<RescheduleModalProps> = ({
                                                 {morningSlots.map((slot) => (
                                                     <button
                                                         key={slot.time}
-                                                        onClick={() => setSelectedTime(slot.time)}
+                                                        onClick={() => {
+                                                            setSelectedTime(slot.time);
+                                                            setSelectedSlotBarberId(slot.barberId || null);
+                                                        }}
                                                         className={clsx(
                                                             "py-2 px-1 rounded-lg text-sm font-medium transition-all duration-200",
                                                             selectedTime === slot.time
@@ -288,7 +344,10 @@ const RescheduleModal: React.FC<RescheduleModalProps> = ({
                                                 {afternoonSlots.map((slot) => (
                                                     <button
                                                         key={slot.time}
-                                                        onClick={() => setSelectedTime(slot.time)}
+                                                        onClick={() => {
+                                                            setSelectedTime(slot.time);
+                                                            setSelectedSlotBarberId(slot.barberId || null);
+                                                        }}
                                                         className={clsx(
                                                             "py-2 px-1 rounded-lg text-sm font-medium transition-all duration-200",
                                                             selectedTime === slot.time

@@ -7,8 +7,10 @@ interface AuthContextType {
     user: User | null;
     role: string | null;
     isAdmin: boolean;
+    isProfessionalAdmin: boolean;
     loading: boolean;
     signOut: () => Promise<void>;
+    refreshRole: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -17,6 +19,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const [session, setSession] = useState<Session | null>(null);
     const [user, setUser] = useState<User | null>(null);
     const [role, setRole] = useState<string | null>(null);
+    const [isProfessionalAdmin, setIsProfessionalAdmin] = useState(false);
     const [loading, setLoading] = useState(true);
 
     const fetchUserRole = async (userId: string) => {
@@ -35,6 +38,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 if (data) {
                     console.log('Role fetched:', data.role);
                     setRole(data.role);
+                    if (data.role === 'admin') {
+                        const { data: barber } = await supabase
+                            .from('barbeiros')
+                            .select('disponivel')
+                            .eq('id', userId)
+                            .maybeSingle();
+                        setIsProfessionalAdmin(barber?.disponivel ?? false);
+                    } else {
+                        setIsProfessionalAdmin(false);
+                    }
                     break;
                 }
 
@@ -58,6 +71,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setLoading(false);
     };
 
+    const refreshRole = async () => {
+        if (user) {
+            await fetchUserRole(user.id);
+        }
+    };
+
     useEffect(() => {
         // Get initial session
         supabase.auth.getSession().then(({ data: { session } }) => {
@@ -78,6 +97,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 fetchUserRole(session.user.id);
             } else {
                 setRole(null);
+                setIsProfessionalAdmin(false);
                 setLoading(false);
             }
         });
@@ -88,12 +108,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const signOut = async () => {
         await supabase.auth.signOut();
         setRole(null);
+        setIsProfessionalAdmin(false);
     };
 
     const isAdmin = role === 'admin';
 
     return (
-        <AuthContext.Provider value={{ session, user, role, isAdmin, loading, signOut }}>
+        <AuthContext.Provider value={{ session, user, role, isAdmin, isProfessionalAdmin, loading, signOut, refreshRole }}>
             {children}
         </AuthContext.Provider>
     );

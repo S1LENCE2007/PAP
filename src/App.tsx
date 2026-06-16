@@ -42,7 +42,7 @@ function App() {
       <CartProvider>
         <Router>
           <ScrollToTop />
-          <Toaster 
+          <Toaster
             position="top-right"
             toastOptions={{
               style: {

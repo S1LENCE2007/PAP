@@ -26,10 +26,9 @@ const PageHeader: React.FC<PageHeaderProps> = ({
         <div className={`relative ${height} flex items-center justify-center overflow-hidden border-b border-white/5`}>
             <div className="absolute inset-0 z-0">
                 <div className="absolute inset-0 bg-black/70 z-10" />
-                <motion.img
-                    src={bannerSrc}
-                    alt="Background"
-                    className="w-full h-full object-cover"
+                <motion.div
+                    className="w-full h-full bg-cover bg-center"
+                    style={{ backgroundImage: `url(${bannerSrc})` }}
                     initial={{ scale: 1.1 }}
                     animate={{ scale: 1 }}
                     transition={{ duration: 1.5 }}

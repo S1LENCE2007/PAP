@@ -8,7 +8,7 @@ import ImageUpload from '../components/ui/ImageUpload';
 import toast from 'react-hot-toast';
 
 const Profile: React.FC = () => {
-    const { user, role } = useAuth();
+    const { user, role, refreshRole } = useAuth();
     const [profileData, setProfileData] = useState({
         nome: '',
         telemovel: '',

@@ -1,17 +1,17 @@
 import React, { useEffect, useState } from 'react';
-import { Users, Calendar, ShoppingBag, Loader, ArrowRight, Clock } from 'lucide-react';
+import { Users, Calendar, ShoppingBag, Loader, ArrowRight, Clock, Package } from 'lucide-react';
 import { supabase } from '../../utils/supabase';
 import { motion } from 'framer-motion';
-import { useNavigate, Link } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 
 const AdminDashboard: React.FC = () => {
     const [stats, setStats] = useState({
         totalClients: 0,
         todayAppointments: 0,
-        totalProducts: 0
+        totalProducts: 0,
+        totalOrders: 0
     });
-    const navigate = useNavigate();
-    const [recentActivity, setRecentActivity] = useState<{ id: string; data_hora: string; status: string; perfis: { nome: string, telemovel?: string, email?: string } | { nome: string, telemovel?: string, email?: string }[] | null; servicos: { nome: string } | { nome: string }[] | null }[]>([]);
+    const [recentActivity, setRecentActivity] = useState<{ id: string; data_hora: string; status: string; perfis: { nome: string, telemovel?: string, email?: string } | { nome: string, telemovel?: string, email?: string }[] | null; servicos: { nome: string } | { nome: string }[] | null; barbeiros: { nome: string } | { nome: string }[] | null }[]>([]);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
@@ -19,17 +19,19 @@ const AdminDashboard: React.FC = () => {
             try {
                 const today = new Date().toISOString().split('T')[0];
 
-                const [clients, appointments, products, recentAptsResult] = await Promise.all([
+                const [clients, appointments, products, orders, recentAptsResult] = await Promise.all([
                     supabase.from('perfis').select('*', { count: 'exact', head: true }).in('role', ['client', 'cliente']),
                     supabase.from('Marcacoes').select('*', { count: 'exact', head: true }).gte('data_hora', `${today}T00:00:00`).lte('data_hora', `${today}T23:59:59`),
                     supabase.from('produtos').select('*', { count: 'exact', head: true }),
+                    supabase.from('encomendas').select('*', { count: 'exact', head: true }),
                     supabase.from('Marcacoes')
                         .select(`
                             id,
                             data_hora,
                             status,
                             perfis (nome, telemovel, email),
-                            servicos (nome)
+                            servicos (nome),
+                            barbeiros (nome)
                         `)
                         .order('created_at', { ascending: false })
                         .limit(5)
@@ -38,7 +40,8 @@ const AdminDashboard: React.FC = () => {
                 setStats({
                     totalClients: clients.count || 0,
                     todayAppointments: appointments.count || 0,
-                    totalProducts: products.count || 0
+                    totalProducts: products.count || 0,
+                    totalOrders: orders.count || 0
                 });
 
                 const mappedRecent = (recentAptsResult.data || []).map(item => ({
@@ -60,6 +63,7 @@ const AdminDashboard: React.FC = () => {
         { title: 'Clientes Totais', value: stats.totalClients, icon: Users, color: 'text-blue-400', bg: 'from-blue-500/20 to-blue-600/5', border: 'border-blue-500/20' },
         { title: 'Marcações Hoje', value: stats.todayAppointments, icon: Calendar, color: 'text-amber-400', bg: 'from-amber-500/20 to-amber-600/5', border: 'border-amber-500/20' },
         { title: 'Produtos', value: stats.totalProducts, icon: ShoppingBag, color: 'text-purple-400', bg: 'from-purple-500/20 to-purple-600/5', border: 'border-purple-500/20' },
+        { title: 'Encomendas', value: stats.totalOrders, icon: Package, color: 'text-emerald-400', bg: 'from-emerald-500/20 to-emerald-600/5', border: 'border-emerald-500/20' },
     ];
 
     if (loading) {
@@ -87,11 +91,11 @@ const AdminDashboard: React.FC = () => {
         <motion.div variants={container} initial="hidden" animate="show">
             <header className="mb-8">
                 <h1 className="text-3xl font-heading font-bold text-white">Dashboard</h1>
-                <p className="text-gray-400">Visão geral da sua barbearia hoje.</p>
+                <p className="text-gray-400">Visão geral do negócio hoje.</p>
             </header>
 
             {/* Stats Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
                 {statCards.map((stat, index) => (
                     <motion.div
                         key={index}
@@ -113,15 +117,14 @@ const AdminDashboard: React.FC = () => {
                 ))}
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                {/* Main Action Area */}
-                <motion.div variants={item} className="lg:col-span-2 space-y-8">
-                    {/* Recent Activity */}
+            <div className="w-full">
+                {/* Recent Activity */}
+                <motion.div variants={item} className="space-y-8">
                     <div className="bg-zinc-900/50 border border-white/5 rounded-2xl p-6 backdrop-blur-sm">
                         <div className="flex justify-between items-center mb-6">
-                            <h2 className="text-xl font-bold text-white">Últimos Marcações</h2>
+                            <h2 className="text-xl font-bold text-white">Últimas Marcações</h2>
                             <Link to="/admin/marcações" className="text-primary hover:text-amber-300 text-sm flex items-center gap-1 transition-colors">
-                                Ver todos <ArrowRight className="w-4 h-4" />
+                                Ver todas <ArrowRight className="w-4 h-4" />
                             </Link>
                         </div>
 
@@ -143,7 +146,7 @@ const AdminDashboard: React.FC = () => {
                                                     <span>{Array.isArray(apt.perfis) ? apt.perfis[0]?.email : apt.perfis?.email}</span>
                                                 </div>
                                                 <p className="text-sm text-primary mt-1">
-                                                    {Array.isArray(apt.servicos) ? apt.servicos[0]?.nome : apt.servicos?.nome}
+                                                    {Array.isArray(apt.servicos) ? apt.servicos[0]?.nome : apt.servicos?.nome} • <span className="text-gray-400 font-normal">Profissional: {Array.isArray(apt.barbeiros) ? apt.barbeiros[0]?.nome : apt.barbeiros?.nome || 'Sem Barbeiro'}</span>
                                                 </p>
                                             </div>
                                         </div>
@@ -169,47 +172,6 @@ const AdminDashboard: React.FC = () => {
                                 <p>Sem marcações recentes.</p>
                             </div>
                         )}
-                    </div>
-                </motion.div>
-
-                {/* Quick Actions Sidebar */}
-                <motion.div variants={item} className="space-y-6">
-                    <div className="bg-zinc-900/50 border border-white/5 rounded-2xl p-6 backdrop-blur-sm">
-                        <h2 className="text-xl font-bold text-white mb-6">Ações Rápidas</h2>
-                        <div className="space-y-3">
-                            <button onClick={() => navigate('/admin/marcações')}
-                                className="w-full p-4 rounded-xl bg-white/5 hover:bg-primary/10 border border-white/5 hover:border-primary/30 flex items-center gap-4 transition-all group text-left">
-                                <div className="p-2 rounded-lg bg-primary/20 text-primary group-hover:scale-110 transition-transform">
-                                    <Calendar className="w-5 h-5" />
-                                </div>
-                                <div>
-                                    <h3 className="font-bold text-white group-hover:text-primary transition-colors">Gerir Agenda</h3>
-                                    <p className="text-xs text-gray-400">Consultar marcações</p>
-                                </div>
-                            </button>
-
-                            <button onClick={() => navigate('/admin/gerenciar')}
-                                className="w-full p-4 rounded-xl bg-white/5 hover:bg-blue-500/10 border border-white/5 hover:border-blue-500/30 flex items-center gap-4 transition-all group text-left">
-                                <div className="p-2 rounded-lg bg-blue-500/20 text-blue-500 group-hover:scale-110 transition-transform">
-                                    <Users className="w-5 h-5" />
-                                </div>
-                                <div>
-                                    <h3 className="font-bold text-white group-hover:text-blue-400 transition-colors">Barbeiros & Serviços</h3>
-                                    <p className="text-xs text-gray-400">Adicionar ou editar</p>
-                                </div>
-                            </button>
-
-                            <button onClick={() => navigate('/admin/produtos')}
-                                className="w-full p-4 rounded-xl bg-white/5 hover:bg-purple-500/10 border border-white/5 hover:border-purple-500/30 flex items-center gap-4 transition-all group text-left">
-                                <div className="p-2 rounded-lg bg-purple-500/20 text-purple-500 group-hover:scale-110 transition-transform">
-                                    <ShoppingBag className="w-5 h-5" />
-                                </div>
-                                <div>
-                                    <h3 className="font-bold text-white group-hover:text-purple-400 transition-colors">Loja Online</h3>
-                                    <p className="text-xs text-gray-400">Gerir produtos</p>
-                                </div>
-                            </button>
-                        </div>
                     </div>
                 </motion.div>
             </div>

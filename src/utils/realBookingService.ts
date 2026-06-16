@@ -14,7 +14,8 @@ export const getRealAvailableSlots = async (
     dateStr: string,
     serviceDuration: number,
     barberId: string | 'any',
-    excludeAppointmentId?: string
+    excludeAppointmentId?: string,
+    currentUserId?: string
 ): Promise<TimeSlot[]> => {
     // Determine closing time based on day of week
     const dayOfWeek = new Date(dateStr).getDay();
@@ -85,6 +86,36 @@ export const getRealAvailableSlots = async (
             .select('id')
             .eq('disponivel', true);
         allBarbers = barbers?.map(b => b.id) || [];
+
+        if (currentUserId) {
+            const { data: profile } = await supabase
+                .from('perfis')
+                .select('role')
+                .eq('id', currentUserId)
+                .single();
+            if (profile && profile.role === 'barbeiro') {
+                const { data: barberProfile } = await supabase
+                    .from('barbeiros')
+                    .select('id')
+                    .eq('user_id', currentUserId)
+                    .maybeSingle();
+                if (barberProfile) {
+                    allBarbers = allBarbers.filter(bId => bId !== barberProfile.id);
+                }
+            }
+        }
+
+        if (allBarbers.length === 0) {
+            // No barbers exist. Fall back to admin (owner)
+            const { data: admins } = await supabase
+                .from('perfis')
+                .select('id')
+                .eq('role', 'admin')
+                .limit(1);
+            if (admins && admins.length > 0) {
+                allBarbers = [admins[0].id];
+            }
+        }
     } else {
         allBarbers = [barberId];
     }
@@ -139,9 +170,20 @@ export const getRealAvailableSlots = async (
             }
             if (freeBarbers.length > 0) {
                 isAvailable = true;
-                // Randomly pick one of the available barbers
-                const randomIndex = Math.floor(Math.random() * freeBarbers.length);
-                candidateBarber = freeBarbers[randomIndex];
+                
+                // Select the barber with the fewest appointments on this day (emptiest agenda)
+                let bestBarber = freeBarbers[0];
+                let minBookings = Infinity;
+
+                for (const bId of freeBarbers) {
+                    const count = allAppointmentsForDate?.filter(apt => apt.barbeiro_id === bId).length || 0;
+                    if (count < minBookings) {
+                        minBookings = count;
+                        bestBarber = bId;
+                    }
+                }
+
+                candidateBarber = bestBarber;
             }
         }
 

@@ -389,64 +389,93 @@ const Calendar: React.FC<CalendarProps> = ({ events, view, onViewChange, current
             {view === 'day' && renderDayView()}
 
             {/* Event Details Modal */}
-            {selectedEvent && (
-                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-dark-bg/80 backdrop-blur-md p-4 animate-in fade-in duration-300" onClick={() => setSelectedEvent(null)}>
-                    <div className="bg-card-bg border border-white/10 rounded-3xl p-6 max-w-sm w-full shadow-2xl shadow-black/60 animate-in zoom-in-95 duration-300 relative overflow-hidden" onClick={e => e.stopPropagation()}>
-                        <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-primary to-secondary"></div>
-                        <div className="flex justify-between items-start mb-6 mt-2">
-                            <h3 className="text-2xl font-heading font-bold text-white">Detalhes da Marcação</h3>
-                            <button onClick={() => setSelectedEvent(null)} className="text-gray-400 hover:text-white p-2 rounded-xl hover:bg-white/10 transition-colors bg-dark-bg/50">
-                                <X className="w-5 h-5" />
-                            </button>
-                        </div>
-                        <div className="space-y-4">
-                            <div className="p-3 rounded-xl bg-white/5 border border-white/5">
-                                <p className="text-xs text-gray-400 uppercase tracking-wider font-bold mb-2">Cliente</p>
-                                <p className="text-white font-medium flex items-center gap-3 mb-2">
-                                    <User className="w-4 h-4 text-primary" /> {selectedEvent.clientDetails?.name || selectedEvent.title}
-                                </p>
-                                {selectedEvent.clientDetails?.phone && (
-                                    <p className="text-white font-medium flex items-center gap-3 mb-2">
-                                        <Phone className="w-4 h-4 text-primary" /> {selectedEvent.clientDetails.phone}
-                                    </p>
-                                )}
-                                {selectedEvent.clientDetails?.email && (
-                                    <p className="text-white font-medium flex items-center gap-3">
-                                        <Mail className="w-4 h-4 text-primary" /> {selectedEvent.clientDetails.email}
-                                    </p>
-                                )}
+            {selectedEvent && (() => {
+                const startB = selectedEvent.start.getTime();
+                const endB = selectedEvent.end.getTime();
+                
+                // Find all overlapping events (including selectedEvent itself)
+                const overlapping = events.filter(e => {
+                    const startA = e.start.getTime();
+                    const endA = e.end.getTime();
+                    return startA < endB && endA > startB;
+                });
+                
+                return (
+                    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-dark-bg/80 backdrop-blur-md p-4 animate-in fade-in duration-300" onClick={() => setSelectedEvent(null)}>
+                        <div className="bg-card-bg border border-white/10 rounded-3xl p-6 max-w-lg w-full max-h-[90vh] overflow-y-auto custom-scrollbar shadow-2xl shadow-black/60 animate-in zoom-in-95 duration-300 relative" onClick={e => e.stopPropagation()}>
+                            <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-primary to-secondary"></div>
+                            <div className="flex justify-between items-start mb-6 mt-2">
+                                <div>
+                                    <h3 className="text-2xl font-heading font-bold text-white">Detalhes da Marcação</h3>
+                                    {overlapping.length > 1 && (
+                                        <p className="text-sm text-yellow-500 font-medium mt-1">Existem {overlapping.length} marcações sobrepostas neste horário.</p>
+                                    )}
+                                </div>
+                                <button onClick={() => setSelectedEvent(null)} className="text-gray-400 hover:text-white p-2 rounded-xl hover:bg-white/10 transition-colors bg-dark-bg/50">
+                                    <X className="w-5 h-5" />
+                                </button>
                             </div>
-                            <div className="p-3 rounded-xl bg-white/5 border border-white/5">
-                                <p className="text-xs text-gray-400 uppercase tracking-wider font-bold mb-2">Serviço & Horário</p>
-                                <p className="text-white font-medium mb-1">
-                                    {format(selectedEvent.start, "d 'de' MMMM, yyyy", { locale: pt })}
-                                </p>
-                                <p className="text-primary font-bold">
-                                    {format(selectedEvent.start, 'HH:mm')} - {format(selectedEvent.end || new Date(selectedEvent.start.getTime() + 60 * 60000), 'HH:mm')}
-                                </p>
-                                {selectedEvent.subtitle && <p className="text-gray-300 mt-2 text-sm">{selectedEvent.subtitle}</p>}
-                            </div>
-                        </div>
+                            
+                            <div className="space-y-6">
+                                {overlapping.map((evt, idx) => (
+                                    <div key={evt.id} className="p-4 rounded-2xl bg-white/5 border border-white/10 relative space-y-4">
+                                        {overlapping.length > 1 && (
+                                            <div className="absolute top-4 right-4 bg-primary/20 text-primary border border-primary/30 text-xs font-bold px-2 py-0.5 rounded-full">
+                                                Marcação #{idx + 1}
+                                            </div>
+                                        )}
+                                        
+                                        <div className="space-y-2">
+                                            <p className="text-xs text-gray-400 uppercase tracking-wider font-bold">Cliente</p>
+                                            <p className="text-white font-medium flex items-center gap-3">
+                                                <User className="w-4 h-4 text-primary" /> {evt.clientDetails?.name || evt.title}
+                                            </p>
+                                            {evt.clientDetails?.phone && (
+                                                <p className="text-white font-medium flex items-center gap-3">
+                                                    <Phone className="w-4 h-4 text-primary" /> {evt.clientDetails.phone}
+                                                </p>
+                                            )}
+                                            {evt.clientDetails?.email && (
+                                                <p className="text-white font-medium flex items-center gap-3">
+                                                    <Mail className="w-4 h-4 text-primary" /> {evt.clientDetails.email}
+                                                </p>
+                                            )}
+                                        </div>
+                                        
+                                        <div className="space-y-2 pt-2 border-t border-white/5">
+                                            <p className="text-xs text-gray-400 uppercase tracking-wider font-bold">Serviço & Horário</p>
+                                            <p className="text-white font-medium">
+                                                {format(evt.start, "d 'de' MMMM, yyyy", { locale: pt })}
+                                            </p>
+                                            <p className="text-primary font-bold">
+                                                {format(evt.start, 'HH:mm')} - {format(evt.end || new Date(evt.start.getTime() + 60 * 60000), 'HH:mm')}
+                                            </p>
+                                            {evt.subtitle && <p className="text-gray-300 text-sm">{evt.subtitle}</p>}
+                                        </div>
 
-                        {/* Ações */}
-                        <div className="mt-6 pt-6 border-t border-white/5 space-y-3">
-                            {renderActions && renderActions(selectedEvent)}
-                            <a
-                                href={getGoogleCalendarUrl(
-                                    `Corte - ${selectedEvent.title}`,
-                                    selectedEvent.start,
-                                    (selectedEvent.end?.getTime() - selectedEvent.start.getTime()) / 60000 || 60
-                                )}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="w-full flex items-center justify-center gap-2 py-3 bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 font-bold rounded-xl transition-colors border border-blue-500/20"
-                            >
-                                <CalendarIcon className="w-5 h-5" /> Adicionar ao Google Calendar
-                            </a>
+                                        {/* Ações para cada evento individualmente */}
+                                        <div className="pt-4 border-t border-white/5 space-y-3">
+                                            {renderActions && renderActions(evt)}
+                                            <a
+                                                href={getGoogleCalendarUrl(
+                                                    `Corte - ${evt.title}`,
+                                                    evt.start,
+                                                    ((evt.end?.getTime() || 0) - evt.start.getTime()) / 60000 || 60
+                                                )}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="w-full flex items-center justify-center gap-2 py-2.5 bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 font-bold rounded-xl transition-colors border border-blue-500/20 text-sm"
+                                            >
+                                                <CalendarIcon className="w-4 h-4" /> Adicionar ao Google Calendar
+                                            </a>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
                         </div>
                     </div>
-                </div>
-            )}
+                );
+            })()}
         </div>
     );
 };

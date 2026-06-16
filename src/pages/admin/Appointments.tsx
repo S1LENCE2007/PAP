@@ -2,25 +2,30 @@ import toast from 'react-hot-toast';
 import React, { useEffect, useState } from 'react';
 import { Check, X, Loader, Repeat } from 'lucide-react';
 import { supabase } from '../../utils/supabase';
-import { motion, AnimatePresence } from 'framer-motion';
+
 import Calendar, { type CalendarEvent } from '../../components/Calendar';
 import ConfirmModal from '../../components/modals/ConfirmModal';
+import RescheduleModal from '../../components/modals/RescheduleModal';
 
 interface Appointment {
     id: string;
     data_hora: string;
     status: string;
+    barbeiro_id: string;
+    servico_id: string;
     perfis: {
         nome: string;
         telemovel: string;
         email?: string;
     } | null;
     servicos: {
+        id: string;
         nome: string;
         preco: number;
         duracao: number;
     } | null;
     barbeiros: {
+        id: string;
         nome: string;
     } | null;
 }
@@ -31,8 +36,6 @@ const AdminAppointments: React.FC = () => {
     const [loading, setLoading] = useState(true);
     // Reschedule states
     const [reschedulingApt, setReschedulingApt] = useState<any>(null);
-    const [newDate, setNewDate] = useState('');
-    const [newTime, setNewTime] = useState('');
 
     // Calendar states
     const [calendarView, setCalendarView] = useState<'month' | 'week' | 'day'>('week');
@@ -48,9 +51,11 @@ const AdminAppointments: React.FC = () => {
                     id,
                     data_hora,
                     status,
+                    barbeiro_id,
+                    servico_id,
                     perfis (nome, telemovel, email),
-                    servicos (nome, preco, duracao),
-                    barbeiros (nome)
+                    servicos (id, nome, preco, duracao),
+                    barbeiros (id, nome)
                 `)
                 .order('data_hora', { ascending: true });
 
@@ -58,12 +63,14 @@ const AdminAppointments: React.FC = () => {
 
             if (error) throw error;
 
-            type SectionData = { nome: string; telemovel?: string; email?: string; preco?: number; duracao?: number };
+            type SectionData = { id: string; nome: string; telemovel?: string; email?: string; preco?: number; duracao?: number };
 
             interface AppointmentData {
                 id: string;
                 data_hora: string;
                 status: string;
+                barbeiro_id: string;
+                servico_id: string;
                 perfis: SectionData | SectionData[];
                 servicos: SectionData | SectionData[];
                 barbeiros: SectionData | SectionData[];
@@ -96,11 +103,13 @@ const AdminAppointments: React.FC = () => {
                         email: perfis.email
                     } : null,
                     servicos: servicos ? {
+                        id: servicos.id,
                         nome: servicos.nome,
                         preco: servicos.preco || 0,
                         duracao: servicos.duracao || 0
                     } : null,
                     barbeiros: barbeiros ? {
+                        id: barbeiros.id,
                         nome: barbeiros.nome
                     } : null
                 };
@@ -139,28 +148,7 @@ const AdminAppointments: React.FC = () => {
         }
     };
 
-    const handleRescheduleSubmit = async () => {
-        if (!newDate || !newTime) return toast('Por favor, selecione a nova data e hora.');
-        const novaDataHora = `${newDate}T${newTime}:00`;
 
-        try {
-            const { error } = await supabase
-                .from('Marcacoes')
-                .update({ data_hora: novaDataHora })
-                .eq('id', reschedulingApt.id);
-
-            if (error) throw error;
-
-            fetchAppointments();
-            setReschedulingApt(null);
-            setNewDate('');
-            setNewTime('');
-            toast.success('Marcação reagendada com sucesso!');
-        } catch (error) {
-            console.error('Erro ao remarcar:', error);
-            toast.error('Erro ao remarcar a marcação.');
-        }
-    };
 
 
 
@@ -252,7 +240,7 @@ const AdminAppointments: React.FC = () => {
         return {
             id: apt.id,
             title: apt.perfis?.nome || 'Cliente',
-            subtitle: `${apt.servicos?.nome || 'Vários'} • ${apt.barbeiros?.nome || ''}`,
+            subtitle: `${apt.servicos?.nome || 'Vários'} • ${apt.barbeiros?.nome || 'Sem Barbeiro'}`,
             start: new Date(apt.data_hora),
             end: new Date(new Date(apt.data_hora).getTime() + (apt.servicos?.duracao || 30) * 60000),
             status: apt.status,
@@ -373,47 +361,17 @@ const AdminAppointments: React.FC = () => {
 
 
             {/* Reschedule Modal */}
-            <AnimatePresence>
-                {reschedulingApt && (
-                    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-                        <motion.div
-                            initial={{ opacity: 0, scale: 0.95 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            exit={{ opacity: 0, scale: 0.95 }}
-                            className="bg-zinc-900 border border-white/10 rounded-2xl p-6 w-full max-w-sm shadow-2xl"
-                        >
-                            <h3 className="text-xl font-bold text-white mb-4">Remarcar Marcação</h3>
-                            <p className="text-sm text-gray-400 mb-6">Selecione a nova data e hora para a marcação de <span className="text-white font-bold">{reschedulingApt.perfis?.nome || 'Cliente'}</span>.</p>
-
-                            <div className="space-y-4 mb-6">
-                                <div>
-                                    <label className="block text-sm text-gray-400 mb-1">Nova Data</label>
-                                    <input
-                                        type="date"
-                                        value={newDate}
-                                        onChange={(e) => setNewDate(e.target.value)}
-                                        className="w-full bg-black/40 border border-white/10 rounded-lg px-4 py-2 text-white outline-none focus:border-primary"
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-sm text-gray-400 mb-1">Nova Hora</label>
-                                    <input
-                                        type="time"
-                                        value={newTime}
-                                        onChange={(e) => setNewTime(e.target.value)}
-                                        className="w-full bg-black/40 border border-white/10 rounded-lg px-4 py-2 text-white outline-none focus:border-primary"
-                                    />
-                                </div>
-                            </div>
-
-                            <div className="flex gap-3">
-                                <button onClick={() => setReschedulingApt(null)} className="flex-1 py-2 rounded-lg btn-outline">Cancelar</button>
-                                <button onClick={handleRescheduleSubmit} className="flex-1 py-2 rounded-lg btn-primary">Confirmar</button>
-                            </div>
-                        </motion.div>
-                    </div>
-                )}
-            </AnimatePresence>
+            {reschedulingApt && (
+                <RescheduleModal
+                    isOpen={!!reschedulingApt}
+                    onClose={() => setReschedulingApt(null)}
+                    appointmentId={reschedulingApt.id}
+                    currentBarberId={reschedulingApt.barbeiro_id}
+                    currentServiceId={reschedulingApt.servico_id}
+                    currentDateHora={reschedulingApt.data_hora}
+                    onSuccess={fetchAppointments}
+                />
+            )}
 
             <ConfirmModal
                 isOpen={confirmModal.isOpen}

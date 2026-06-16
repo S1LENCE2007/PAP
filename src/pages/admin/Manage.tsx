@@ -12,6 +12,13 @@ interface UserProfile {
     email: string;
     role: string;
     telemovel?: string;
+    barbeiros?: {
+        id: string;
+        disponivel: boolean;
+    } | {
+        id: string;
+        disponivel: boolean;
+    }[] | null;
 }
 
 const AdminManage: React.FC = () => {
@@ -38,13 +45,23 @@ const AdminManage: React.FC = () => {
     const fetchUsers = async () => {
         setLoading(true);
         try {
-            const { data, error } = await supabase
-                .from('perfis')
-                .select('*')
-                .order('nome');
+            const [perfisRes, barbeirosRes] = await Promise.all([
+                supabase.from('perfis').select('*').order('nome'),
+                supabase.from('barbeiros').select('id, disponivel, user_id')
+            ]);
 
-            if (error) throw error;
-            setUsers(data || []);
+            if (perfisRes.error) throw perfisRes.error;
+            if (barbeirosRes.error) throw barbeirosRes.error;
+
+            const mappedData = (perfisRes.data || []).map(p => {
+                const b = (barbeirosRes.data || []).find(barber => barber.user_id === p.id);
+                return {
+                    ...p,
+                    barbeiros: b ? { id: b.id, disponivel: b.disponivel } : null
+                };
+            });
+
+            setUsers(mappedData as any);
         } catch (error) {
             console.error('Erro ao buscar utilizadores:', error);
         } finally {
@@ -74,7 +91,9 @@ const AdminManage: React.FC = () => {
     const handleConfirmDelete = async () => {
         if (!confirmModal.id) return;
         try {
-            const { error } = await supabase.from('perfis').delete().eq('id', confirmModal.id);
+            const { error } = await supabase.rpc('admin_delete_user_v3', {
+                p_user_id: confirmModal.id
+            });
             if (error) throw error;
             fetchUsers();
             toast.success('Utilizador removido com sucesso.');
@@ -127,6 +146,55 @@ const AdminManage: React.FC = () => {
             ...prev,
             [name]: value
         }));
+    };
+
+    const getBarberDisponivel = (userItem: UserProfile) => {
+        if (!userItem.barbeiros) return false;
+        const b = Array.isArray(userItem.barbeiros) ? userItem.barbeiros[0] : userItem.barbeiros;
+        return b?.disponivel ?? false;
+    };
+
+    const handleToggleBarberAvailability = async (userItem: UserProfile) => {
+        const currentDisponivel = getBarberDisponivel(userItem);
+        const nextDisponivel = !currentDisponivel;
+
+        if (currentDisponivel) {
+            const activeBarbers = users.filter(u => 
+                (u.role === 'barbeiro' || u.role === 'barber' || u.role === 'admin') && getBarberDisponivel(u)
+            );
+            if (activeBarbers.length <= 1) {
+                toast.error('Deve manter pelo menos um profissional disponível no sistema para marcações.');
+                return;
+            }
+        }
+
+        try {
+            const b = Array.isArray(userItem.barbeiros) ? userItem.barbeiros[0] : userItem.barbeiros;
+            if (b) {
+                const { error } = await supabase
+                    .from('barbeiros')
+                    .update({ disponivel: nextDisponivel })
+                    .eq('id', b.id);
+                if (error) throw error;
+            } else {
+                const { error } = await supabase
+                    .from('barbeiros')
+                    .insert([{
+                        id: userItem.id,
+                        user_id: userItem.id,
+                        nome: userItem.nome,
+                        disponivel: nextDisponivel,
+                        bio: userItem.role === 'admin' ? 'Administrador da Barbearia' : 'Profissional da Barbearia'
+                    }]);
+                if (error) throw error;
+            }
+
+            toast.success(nextDisponivel ? 'Profissional disponível!' : 'Profissional indisponível.');
+            fetchUsers();
+        } catch (error: any) {
+            console.error('Erro ao alternar disponibilidade:', error);
+            toast.error('Erro ao atualizar: ' + error.message);
+        }
     };
 
     const filteredUsers = users.filter(user => {
@@ -281,13 +349,32 @@ const AdminManage: React.FC = () => {
                                     <div className="overflow-hidden">
                                         <h3 className="font-bold text-white truncate">{user.nome || 'Sem Nome'}</h3>
                                         <p className="text-sm text-gray-500 truncate">{user.email}</p>
-                                        <div className="flex items-center gap-2 mt-1">
+                                        <div className="flex flex-wrap items-center gap-2 mt-1.5">
                                             <span className={`text-xs px-2 py-0.5 rounded-full font-bold uppercase tracking-wider ${user.role === 'admin' ? 'bg-red-500/20 text-red-400' :
                                                 user.role === 'barbeiro' || user.role === 'barber' ? 'bg-amber-500/20 text-amber-400' :
                                                     'bg-blue-500/20 text-blue-400'
                                                 }`}>
                                                 {user.role}
                                             </span>
+                                            {(user.role === 'barbeiro' || user.role === 'barber' || user.role === 'admin') && (
+                                                <div 
+                                                    className="flex items-center gap-2 select-none"
+                                                    title={getBarberDisponivel(user) ? 'Disponível para marcações' : 'Indisponível para marcações'}
+                                                >
+                                                    <label className="relative inline-flex items-center cursor-pointer shrink-0">
+                                                        <input
+                                                            type="checkbox"
+                                                            checked={getBarberDisponivel(user)}
+                                                            onChange={() => handleToggleBarberAvailability(user)}
+                                                            className="sr-only peer"
+                                                        />
+                                                        <div className="relative w-9 h-5 bg-zinc-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-4 after:content-[''] after:absolute after:top-[1px] after:left-[1px] after:bg-gray-400 after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:after:bg-black peer-checked:bg-primary border border-zinc-700 peer-checked:border-primary/50"></div>
+                                                    </label>
+                                                    <span className={`text-[10px] font-bold uppercase tracking-wider transition-colors duration-300 ${getBarberDisponivel(user) ? 'text-primary' : 'text-gray-500'}`}>
+                                                        {getBarberDisponivel(user) ? 'Ativo' : 'Inativo'}
+                                                    </span>
+                                                </div>
+                                            )}
                                             {user.telemovel && <span className="text-xs text-gray-600">{user.telemovel}</span>}
                                         </div>
                                     </div>

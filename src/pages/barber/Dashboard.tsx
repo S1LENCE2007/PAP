@@ -4,8 +4,9 @@ import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../utils/supabase';
 import { Calendar as CalendarIcon, CheckCircle, AlertCircle, X, Repeat, Loader } from 'lucide-react';
 import Calendar, { type CalendarEvent } from '../../components/Calendar';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import ConfirmModal from '../../components/modals/ConfirmModal';
+import RescheduleModal from '../../components/modals/RescheduleModal';
 
 const BarberDashboard: React.FC = () => {
     const { user, isAdmin } = useAuth();
@@ -25,8 +26,6 @@ const BarberDashboard: React.FC = () => {
 
     // Reschedule State
     const [reschedulingApt, setReschedulingApt] = useState<any>(null);
-    const [newDate, setNewDate] = useState('');
-    const [newTime, setNewTime] = useState('');
     const [confirmModal, setConfirmModal] = useState<{ isOpen: boolean; id: string | null; newStatus: string | null; message: string }>({ isOpen: false, id: null, newStatus: null, message: '' });
 
     useEffect(() => {
@@ -147,11 +146,8 @@ const BarberDashboard: React.FC = () => {
         title: apt.cliente?.nome || 'Cliente',
         subtitle: (() => {
             const serviceName = apt.servico?.nome || 'Serviço';
-            if (isAdmin) {
-                const bData = Array.isArray(apt.barbeiros) ? apt.barbeiros[0] : apt.barbeiros;
-                return `${serviceName} (${bData?.nome || 'Sem Barbeiro'})`;
-            }
-            return serviceName;
+            const bData = Array.isArray(apt.barbeiros) ? apt.barbeiros[0] : apt.barbeiros;
+            return `${serviceName} • ${bData?.nome || 'Sem Barbeiro'}`;
         })(),
         start: new Date(apt.data_hora),
         end: new Date(new Date(apt.data_hora).getTime() + (apt.servico?.duracao || 30) * 60000),
@@ -237,35 +233,14 @@ const BarberDashboard: React.FC = () => {
         );
     };
 
-    const handleRescheduleSubmit = async () => {
-        if (!newDate || !newTime) return toast('Por favor, selecione a nova data e hora.');
-        const novaDataHora = `${newDate}T${newTime}:00`;
 
-        try {
-            const { error } = await supabase
-                .from('Marcacoes')
-                .update({ data_hora: novaDataHora })
-                .eq('id', reschedulingApt.id);
-
-            if (error) throw error;
-
-            fetchData();
-            setReschedulingApt(null);
-            setNewDate('');
-            setNewTime('');
-            toast.success('Marcação reagendada com sucesso!');
-        } catch (error) {
-            console.error('Erro ao remarcar:', error);
-            toast.error('Erro ao remarcar a marcação.');
-        }
-    };
 
     return (
         <motion.div
             variants={container}
             initial="hidden"
             animate="show"
-            className="min-h-screen bg-dark-bg text-white p-6 pt-24"
+            className="text-white"
         >
             <header className="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
                 <div>
@@ -321,47 +296,17 @@ const BarberDashboard: React.FC = () => {
             </div>
 
             {/* Reschedule Modal */}
-            <AnimatePresence>
-                {reschedulingApt && (
-                    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-                        <motion.div
-                            initial={{ opacity: 0, scale: 0.95 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            exit={{ opacity: 0, scale: 0.95 }}
-                            className="bg-zinc-900 border border-white/10 rounded-2xl p-6 w-full max-w-sm shadow-2xl"
-                        >
-                            <h3 className="text-xl font-bold text-white mb-4">Remarcar Marcação</h3>
-                            <p className="text-sm text-gray-400 mb-6">Selecione a nova data e hora para a marcação de <span className="text-white font-bold">{reschedulingApt.cliente?.nome || 'Cliente'}</span>.</p>
-
-                            <div className="space-y-4 mb-6">
-                                <div>
-                                    <label className="block text-sm text-gray-400 mb-1">Nova Data</label>
-                                    <input
-                                        type="date"
-                                        value={newDate}
-                                        onChange={(e) => setNewDate(e.target.value)}
-                                        className="w-full bg-black/40 border border-white/10 rounded-lg px-4 py-2 text-white outline-none focus:border-primary"
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-sm text-gray-400 mb-1">Nova Hora</label>
-                                    <input
-                                        type="time"
-                                        value={newTime}
-                                        onChange={(e) => setNewTime(e.target.value)}
-                                        className="w-full bg-black/40 border border-white/10 rounded-lg px-4 py-2 text-white outline-none focus:border-primary"
-                                    />
-                                </div>
-                            </div>
-
-                            <div className="flex gap-3">
-                                <button onClick={() => setReschedulingApt(null)} className="flex-1 py-2 rounded-lg btn-outline">Cancelar</button>
-                                <button onClick={handleRescheduleSubmit} className="flex-1 py-2 rounded-lg btn-primary">Confirmar</button>
-                            </div>
-                        </motion.div>
-                    </div>
-                )}
-            </AnimatePresence>
+            {reschedulingApt && (
+                <RescheduleModal
+                    isOpen={!!reschedulingApt}
+                    onClose={() => setReschedulingApt(null)}
+                    appointmentId={reschedulingApt.id}
+                    currentBarberId={reschedulingApt.barbeiro_id}
+                    currentServiceId={reschedulingApt.servico_id}
+                    currentDateHora={reschedulingApt.data_hora}
+                    onSuccess={fetchData}
+                />
+            )}
             <ConfirmModal
                 isOpen={confirmModal.isOpen}
                 onClose={() => setConfirmModal({ isOpen: false, id: null, newStatus: null, message: '' })}

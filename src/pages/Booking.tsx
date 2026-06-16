@@ -15,7 +15,7 @@ import { pt } from 'date-fns/locale';
 import WeeklyCalendar from '../components/ui/WeeklyCalendar';
 
 const Booking: React.FC = () => {
-    const { user } = useAuth();
+    const { user, role } = useAuth();
     const [step, setStep] = useState(1);
 
     // Data state
@@ -64,6 +64,8 @@ const Booking: React.FC = () => {
                 if (barbersRes.error) throw barbersRes.error;
                 if (servicesRes.error) throw servicesRes.error;
 
+                let activeBarbers = barbersRes.data || [];
+
                 // Add 'Any Barber' option
                 const anyBarber = {
                     id: 'any',
@@ -72,7 +74,7 @@ const Booking: React.FC = () => {
                     disponivel: true
                 };
 
-                const sortedBarbers = (barbersRes.data || []).sort((a, b) => a.nome.localeCompare(b.nome));
+                const sortedBarbers = activeBarbers.sort((a, b) => a.nome.localeCompare(b.nome));
                 setBarbers([anyBarber, ...sortedBarbers]);
 
                 setServices(servicesRes.data || []);
@@ -127,7 +129,7 @@ const Booking: React.FC = () => {
         };
 
         fetchData();
-    }, [location]);
+    }, [location, user, role]);
 
     if (loadingData) {
         return (
@@ -148,7 +150,9 @@ const Booking: React.FC = () => {
             const slots = await getRealAvailableSlots(
                 formattedDate,
                 selectedService.duracao,
-                selectedBarber.id
+                selectedBarber.id,
+                undefined,
+                user?.id
             );
             setAvailableSlots(slots);
         }
@@ -170,7 +174,7 @@ const Booking: React.FC = () => {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
-        const finalBarberId = selectedBarber?.id === 'any' ? selectedSlotBarberId : selectedBarber?.id;
+        let finalBarberId = selectedBarber?.id === 'any' ? selectedSlotBarberId : selectedBarber?.id;
 
         if (!user || !finalBarberId || !selectedService || !selectedDate || !selectedTime) {
             toast.error('Por favor, preencha todos os campos.');
@@ -180,6 +184,33 @@ const Booking: React.FC = () => {
         setIsSubmitting(true);
 
         try {
+            // If the assigned barber is the client themselves, and they are a barber, automatically assign to admin
+            if (finalBarberId === user.id) {
+                const { data: userProfile } = await supabase
+                    .from('perfis')
+                    .select('role')
+                    .eq('id', user.id)
+                    .single();
+                if (userProfile && userProfile.role === 'barbeiro') {
+                    const { data: admins } = await supabase
+                        .from('perfis')
+                        .select('id')
+                        .eq('role', 'admin')
+                        .limit(1);
+                    if (admins && admins.length > 0) {
+                        const { data: barber } = await supabase
+                            .from('barbeiros')
+                            .select('id')
+                            .eq('id', admins[0].id)
+                            .maybeSingle();
+                        if (barber) {
+                            finalBarberId = barber.id;
+                        } else {
+                            finalBarberId = admins[0].id;
+                        }
+                    }
+                }
+            }
             const dateTimeString = `${selectedDate}T${selectedTime}:00`;
             const dateObj = new Date(dateTimeString);
             if (editAppointmentId) {

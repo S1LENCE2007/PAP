@@ -114,14 +114,8 @@ const Register: React.FC = () => {
 
     return (
         <div className="min-h-screen bg-dark-bg flex items-center justify-center px-4 pt-20 pb-12 relative overflow-hidden">
-            {/* ... (background code omitted for brevity) ... */}
-            <div className="absolute inset-0 z-0">
+            <div className="absolute inset-0 z-0 bg-cover bg-center" style={{ backgroundImage: `url('https://images.unsplash.com/photo-1503951914875-452162b7f30a?auto=format&fit=crop&q=80&w=2070')` }}>
                 <div className="absolute inset-0 bg-black/70 z-10" />
-                <img
-                    src="https://images.unsplash.com/photo-1503951914875-452162b7f30a?auto=format&fit=crop&q=80&w=2070"
-                    alt="Background"
-                    className="w-full h-full object-cover"
-                />
             </div>
             <motion.div
                 className="max-w-4xl w-full bg-card-bg p-8 rounded-2xl border border-white/5 shadow-2xl relative z-10"
