@@ -19,7 +19,7 @@ export const getRealAvailableSlots = async (
 ): Promise<TimeSlot[]> => {
     // Determine closing time based on day of week
     const dayOfWeek = new Date(dateStr).getDay();
-    
+
     // Sunday (0): Closed, return no slots
     if (dayOfWeek === 0) {
         return [];
@@ -58,13 +58,14 @@ export const getRealAvailableSlots = async (
         return [];
     }
 
-    // Check if the day is blocked
-    const isDayBlocked = allAppointmentsForDate?.some(apt => {
-        const servicoData = Array.isArray(apt.servicos) ? apt.servicos[0] : apt.servicos;
-        return (servicoData as any)?.nome === 'BLOQUEIO_DIA';
-    });
+    // Check if the day is blocked in 'dias_bloqueados' table
+    const { data: blockData } = await supabase
+        .from('dias_bloqueados')
+        .select('id')
+        .eq('data', dateStr)
+        .maybeSingle();
 
-    if (isDayBlocked) {
+    if (blockData) {
         return []; // Whole day is blocked, no slots available
     }
 
@@ -170,7 +171,7 @@ export const getRealAvailableSlots = async (
             }
             if (freeBarbers.length > 0) {
                 isAvailable = true;
-                
+
                 // Select the barber with the fewest appointments on this day (emptiest agenda)
                 let bestBarber = freeBarbers[0];
                 let minBookings = Infinity;

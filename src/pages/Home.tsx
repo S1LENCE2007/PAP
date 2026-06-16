@@ -355,8 +355,8 @@ const Home: React.FC = () => {
                                                 <button
                                                     onClick={() => setSelectedService(selectedService?.id === service.id ? null : service)}
                                                     className={`w-full group relative flex flex-col overflow-hidden rounded-2xl border text-left transition-all duration-300 hover:-translate-y-2 hover:shadow-lg h-full min-h-[380px] ${selectedService?.id === service.id
-                                                            ? "border-primary bg-primary/10 shadow-[0_0_25px_rgba(212,175,55,0.15)]"
-                                                            : "border-white/5 bg-card-bg hover:border-white/20"
+                                                        ? "border-primary bg-primary/10 shadow-[0_0_25px_rgba(212,175,55,0.15)]"
+                                                        : "border-white/5 bg-card-bg hover:border-white/20"
                                                         }`}
                                                 >
                                                     {service.imagem_url ? (
@@ -504,8 +504,8 @@ const Home: React.FC = () => {
                                                 <button
                                                     onClick={() => setSelectedProduct(selectedProduct?.id === product.id ? null : product)}
                                                     className={`w-full group relative flex flex-col overflow-hidden rounded-2xl border text-left transition-all duration-300 hover:-translate-y-2 hover:shadow-lg h-full min-h-[380px] ${selectedProduct?.id === product.id
-                                                            ? "border-primary bg-primary/10 shadow-[0_0_25px_rgba(212,175,55,0.15)]"
-                                                            : "border-white/5 bg-card-bg hover:border-white/20"
+                                                        ? "border-primary bg-primary/10 shadow-[0_0_25px_rgba(212,175,55,0.15)]"
+                                                        : "border-white/5 bg-card-bg hover:border-white/20"
                                                         }`}
                                                 >
                                                     <div className="w-full h-48 overflow-hidden bg-black/40 relative">
@@ -649,8 +649,8 @@ const Home: React.FC = () => {
                                                     className="w-full md:w-1/3 shrink-0 px-4 transition-all duration-500"
                                                 >
                                                     <div className={`relative aspect-square overflow-hidden rounded-2xl group cursor-pointer bg-zinc-900 border transition-all duration-500 ${isActive
-                                                            ? "scale-110 border-primary active-gallery-card z-10 blur-none opacity-100"
-                                                            : "scale-90 opacity-30 blur-[2px] hover:opacity-75 hover:blur-none border-white/5 z-0"
+                                                        ? "scale-110 border-primary active-gallery-card z-10 blur-none opacity-100"
+                                                        : "scale-90 opacity-30 blur-[2px] hover:opacity-75 hover:blur-none border-white/5 z-0"
                                                         }`}>
                                                         <img
                                                             src={item.url}

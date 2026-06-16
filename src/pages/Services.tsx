@@ -69,58 +69,58 @@ const Services: React.FC = () => {
                     </div>
                 ) : (
                     categories.map((category, catIndex) => (
-                    <motion.div
-                        key={catIndex}
-                        className="mb-20"
-                        initial={{ opacity: 0, y: 20 }}
-                        whileInView={{ opacity: 1, y: 0 }}
-                        viewport={{ once: true }}
-                        transition={{ delay: catIndex * 0.2 }}
-                    >
-                        <div className="flex items-center mb-10">
-                            <div className="h-px flex-grow bg-gradient-to-r from-transparent to-primary/50" />
-                            <h2 className="font-heading text-3xl text-white px-6 uppercase tracking-widest">
-                                {category.title}
-                            </h2>
-                            <div className="h-px flex-grow bg-gradient-to-l from-transparent to-primary/50" />
-                        </div>
+                        <motion.div
+                            key={catIndex}
+                            className="mb-20"
+                            initial={{ opacity: 0, y: 20 }}
+                            whileInView={{ opacity: 1, y: 0 }}
+                            viewport={{ once: true }}
+                            transition={{ delay: catIndex * 0.2 }}
+                        >
+                            <div className="flex items-center mb-10">
+                                <div className="h-px flex-grow bg-gradient-to-r from-transparent to-primary/50" />
+                                <h2 className="font-heading text-3xl text-white px-6 uppercase tracking-widest">
+                                    {category.title}
+                                </h2>
+                                <div className="h-px flex-grow bg-gradient-to-l from-transparent to-primary/50" />
+                            </div>
 
-                        <div className="grid md:grid-cols-2 gap-6">
-                            {category.items.map((service, index) => (
-                                <div
-                                    key={index}
-                                    className="bg-card-bg p-8 rounded-2xl border border-white/5 hover:border-primary/30 transition-all duration-300 group hover:-translate-y-1 shadow-lg hover:shadow-primary/5 flex flex-col"
-                                >
-                                    {service.imagem_url && (
-                                        <div className="w-full h-48 rounded-xl overflow-hidden mb-6 bg-black/40 relative">
-                                            <img
-                                                src={service.imagem_url}
-                                                alt={service.name}
-                                                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                                            />
-                                        </div>
-                                    )}
-                                    <div className="flex justify-between items-start mb-4">
-                                        <h3 className="text-xl font-bold text-white group-hover:text-primary transition-colors">
-                                            {service.name}
-                                        </h3>
-                                        <span className="text-xl font-bold text-primary bg-primary/10 px-3 py-1 rounded-lg shrink-0 ml-4">{service.price}</span>
-                                    </div>
-                                    {service.description && (
-                                        <p className="text-gray-400 text-sm mb-6 leading-relaxed border-b border-white/5 pb-4">{service.description}</p>
-                                    )}
-                                    <Link
-                                        to="/agendar"
-                                        state={{ serviceName: service.name }}
-                                        className="inline-flex items-center text-sm font-bold text-white hover:text-primary transition-colors uppercase tracking-wide"
+                            <div className="grid md:grid-cols-2 gap-6">
+                                {category.items.map((service, index) => (
+                                    <div
+                                        key={index}
+                                        className="bg-card-bg p-8 rounded-2xl border border-white/5 hover:border-primary/30 transition-all duration-300 group hover:-translate-y-1 shadow-lg hover:shadow-primary/5 flex flex-col"
                                     >
-                                        <Check className="w-4 h-4 mr-2 text-primary" /> Agendar Agora
-                                    </Link>
-                                </div>
-                            ))}
-                        </div>
-                    </motion.div>
-                )))}
+                                        {service.imagem_url && (
+                                            <div className="w-full h-48 rounded-xl overflow-hidden mb-6 bg-black/40 relative">
+                                                <img
+                                                    src={service.imagem_url}
+                                                    alt={service.name}
+                                                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                                                />
+                                            </div>
+                                        )}
+                                        <div className="flex justify-between items-start mb-4">
+                                            <h3 className="text-xl font-bold text-white group-hover:text-primary transition-colors">
+                                                {service.name}
+                                            </h3>
+                                            <span className="text-xl font-bold text-primary bg-primary/10 px-3 py-1 rounded-lg shrink-0 ml-4">{service.price}</span>
+                                        </div>
+                                        {service.description && (
+                                            <p className="text-gray-400 text-sm mb-6 leading-relaxed border-b border-white/5 pb-4">{service.description}</p>
+                                        )}
+                                        <Link
+                                            to="/agendar"
+                                            state={{ serviceName: service.name }}
+                                            className="inline-flex items-center text-sm font-bold text-white hover:text-primary transition-colors uppercase tracking-wide"
+                                        >
+                                            <Check className="w-4 h-4 mr-2 text-primary" /> Agendar Agora
+                                        </Link>
+                                    </div>
+                                ))}
+                            </div>
+                        </motion.div>
+                    )))}
             </div>
 
             {/* CTA */}

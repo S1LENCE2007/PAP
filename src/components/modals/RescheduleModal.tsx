@@ -147,7 +147,7 @@ const RescheduleModal: React.FC<RescheduleModalProps> = ({
                     .select('role')
                     .eq('id', appointmentDetails.cliente_id)
                     .single();
-                
+
                 if (custProfile && custProfile.role === 'barbeiro') {
                     const { data: admins } = await supabase
                         .from('perfis')

@@ -59,9 +59,16 @@ const AdminAppointments: React.FC = () => {
                 `)
                 .order('data_hora', { ascending: true });
 
-            const { data, error } = await query;
+            const [appointmentsRes, blockedDaysRes] = await Promise.all([
+                query,
+                supabase.from('dias_bloqueados').select('*')
+            ]);
 
-            if (error) throw error;
+            if (appointmentsRes.error) throw appointmentsRes.error;
+            if (blockedDaysRes.error) throw blockedDaysRes.error;
+
+            const data = appointmentsRes.data || [];
+            const blockedDaysData = blockedDaysRes.data || [];
 
             type SectionData = { id: string; nome: string; telemovel?: string; email?: string; preco?: number; duracao?: number };
 
@@ -115,11 +122,24 @@ const AdminAppointments: React.FC = () => {
                 };
             });
 
-            const blocks = formattedData.filter((item: any) => item.servicos?.nome === 'BLOQUEIO_DIA');
-            const regular = formattedData.filter((item: any) => item.servicos?.nome !== 'BLOQUEIO_DIA');
+            const blocks = blockedDaysData.map((item: any) => ({
+                id: item.id,
+                data_hora: `${item.data}T00:00:00`,
+                status: 'confirmado',
+                barbeiro_id: '',
+                servico_id: '',
+                perfis: null,
+                barbeiros: null,
+                servicos: {
+                    id: 'bloqueio',
+                    nome: 'BLOQUEIO_DIA',
+                    preco: 0,
+                    duracao: 600
+                }
+            }));
 
             setBlockedAppointments(blocks);
-            setAppointments(regular);
+            setAppointments(formattedData);
         } catch (error) {
             console.error('Erro ao buscar marcações:', error);
         } finally {
@@ -169,41 +189,16 @@ const AdminAppointments: React.FC = () => {
     const handleBlockDaySubmit = async () => {
         if (selectedDates.length === 0) return toast('Por favor, selecione pelo menos uma data.');
         try {
-            // 1. Get or create BLOQUEIO_DIA service
-            let { data: servico } = await supabase.from('servicos').select('id').eq('nome', 'BLOQUEIO_DIA').maybeSingle();
-            if (!servico) {
-                const { data: newServ, error: errServ } = await supabase.from('servicos').insert([{
-                    nome: 'BLOQUEIO_DIA',
-                    descricao: 'Bloqueio administrativo do dia inteiro',
-                    preco: 0,
-                    duracao: 600 // 10 horas
-                }]).select('id').single();
-                if (errServ) throw errServ;
-                servico = newServ;
-            }
-
-            // 2. Get any barber to assign the block to
-            const { data: barbeiro } = await supabase.from('barbeiros').select('id').limit(1).single();
-            if (!barbeiro) throw new Error('Nenhum barbeiro encontrado para associar o bloqueio.');
-
-            // 3. Get current user
-            const { data: { user } } = await supabase.auth.getUser();
-
-            // 4. Create block appointments for each selected date
-            const blockAppointments = selectedDates.map(date => {
+            const blockRows = selectedDates.map(date => {
                 const dateString = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
                 return {
-                    cliente_id: user?.id,
-                    barbeiro_id: barbeiro.id,
-                    servico_id: servico.id,
-                    data_hora: `${dateString}T00:00:00`,
-                    status: 'confirmado'
+                    data: dateString
                 };
             });
 
-            const { error: errApt } = await supabase.from('Marcacoes').insert(blockAppointments);
+            const { error: errBlock } = await supabase.from('dias_bloqueados').insert(blockRows);
 
-            if (errApt) throw errApt;
+            if (errBlock) throw errBlock;
 
             toast.success('Dias bloqueados com sucesso!');
             setIsSelectionMode(false);
@@ -226,7 +221,7 @@ const AdminAppointments: React.FC = () => {
         });
         if (blockApt) {
             try {
-                await supabase.from('Marcacoes').delete().eq('id', blockApt.id);
+                await supabase.from('dias_bloqueados').delete().eq('id', blockApt.id);
                 fetchAppointments();
                 toast.success('Bloqueio removido com sucesso.');
             } catch (e) {
