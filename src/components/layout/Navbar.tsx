@@ -211,7 +211,7 @@ const Navbar: React.FC = () => {
                                                         Painel de Controlo
                                                     </Link>
 
-                                                    {isAdmin && (
+                                                    {(isAdmin || role === 'barbeiro') && (
                                                         <Link
                                                             to="/verificar-encomenda"
                                                             onClick={() => setUserMenuOpen(false)}
@@ -376,7 +376,7 @@ const Navbar: React.FC = () => {
                                                 >
                                                     <div className="flex items-center gap-3"><LayoutDashboard className="w-5 h-5" /> Painel de Controlo</div>
                                                 </Link>
-                                                {isAdmin && (
+                                                {(isAdmin || role === 'barbeiro') && (
                                                     <Link
                                                         to="/verificar-encomenda"
                                                         onClick={() => setIsOpen(false)}

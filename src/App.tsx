@@ -84,7 +84,7 @@ function App() {
               {/* Admin Routes - Now Integrated with MainLayout below */}
 
               <Route path="/verificar-encomenda" element={
-                <ProtectedRoute allowedRoles={['admin']}>
+                <ProtectedRoute allowedRoles={['admin', 'barbeiro']}>
                   <VerifyOrder />
                 </ProtectedRoute>
               } />
