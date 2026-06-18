@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, Calendar, Users, ShoppingBag, Scissors, Loader, ChevronRight, Menu, X, Image } from 'lucide-react';
+import { LayoutDashboard, Calendar, Users, ShoppingBag, Scissors, Loader, ChevronRight, Menu, X, Image, Mail } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../utils/supabase';
 import { clsx } from 'clsx';
@@ -50,6 +50,7 @@ const AdminLayout: React.FC = () => {
         { name: 'Produtos', path: '/admin/produtos', icon: ShoppingBag },
         { name: 'Galeria', path: '/admin/galeria', icon: Image },
         { name: 'Serviços', path: '/admin/servicos', icon: Scissors },
+        { name: 'Mensagens', path: '/admin/mensagens', icon: Mail },
     ];
 
     const isActive = (path: string) => location.pathname === path;

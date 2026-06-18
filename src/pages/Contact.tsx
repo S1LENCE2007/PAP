@@ -1,10 +1,54 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { MapPin, Phone, Mail, Clock, Instagram, Facebook, Send } from 'lucide-react';
+import { MapPin, Phone, Mail, Clock, Instagram, Facebook, Send, Loader } from 'lucide-react';
+import { supabase } from '../utils/supabase';
+import toast from 'react-hot-toast';
 
 import PageHeader from '../components/layout/PageHeader';
 
 const Contact: React.FC = () => {
+    const [nome, setNome] = useState('');
+    const [email, setEmail] = useState('');
+    const [assunto, setAssunto] = useState('');
+    const [mensagem, setMensagem] = useState('');
+    const [isSubmitting, setIsSubmitting] = useState(false);
+
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        
+        if (!nome.trim() || !email.trim() || !mensagem.trim()) {
+            toast.error('Por favor, preencha os campos obrigatórios (Nome, Email e Mensagem).');
+            return;
+        }
+
+        setIsSubmitting(true);
+        try {
+            const { error } = await supabase
+                .from('mensagens_contacto')
+                .insert([
+                    {
+                        nome: nome.trim(),
+                        email: email.trim(),
+                        assunto: assunto.trim() || 'Sem Assunto',
+                        mensagem: mensagem.trim()
+                    }
+                ]);
+
+            if (error) throw error;
+
+            toast.success('Mensagem enviada com sucesso! Entraremos em contacto brevemente.');
+            setNome('');
+            setEmail('');
+            setAssunto('');
+            setMensagem('');
+        } catch (err) {
+            console.error('Erro ao enviar mensagem:', err);
+            toast.error('Erro ao enviar a mensagem. Por favor, tente novamente.');
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+
     return (
         <div className="min-h-screen bg-dark-bg">
             <PageHeader
@@ -89,15 +133,51 @@ const Contact: React.FC = () => {
                     >
                         <div className="bg-card-bg p-8 rounded-2xl border border-white/5 shadow-xl">
                             <h3 className="text-2xl font-bold text-white mb-6 border-l-4 border-primary pl-4">Envie uma Mensagem</h3>
-                            <form className="space-y-4">
+                            <form onSubmit={handleSubmit} className="space-y-4">
                                 <div className="grid grid-cols-2 gap-4">
-                                    <input type="text" placeholder="Nome" className="bg-dark-bg border border-white/10 rounded-lg px-4 py-3 text-white focus:border-primary focus:outline-none w-full" />
-                                    <input type="email" placeholder="Email" className="bg-dark-bg border border-white/10 rounded-lg px-4 py-3 text-white focus:border-primary focus:outline-none w-full" />
+                                    <input 
+                                        type="text" 
+                                        placeholder="Nome *" 
+                                        value={nome}
+                                        onChange={(e) => setNome(e.target.value)}
+                                        className="bg-dark-bg border border-white/10 rounded-lg px-4 py-3 text-white focus:border-primary focus:outline-none w-full" 
+                                        required 
+                                    />
+                                    <input 
+                                        type="email" 
+                                        placeholder="Email *" 
+                                        value={email}
+                                        onChange={(e) => setEmail(e.target.value)}
+                                        className="bg-dark-bg border border-white/10 rounded-lg px-4 py-3 text-white focus:border-primary focus:outline-none w-full" 
+                                        required 
+                                    />
                                 </div>
-                                <input type="text" placeholder="Assunto" className="bg-dark-bg border border-white/10 rounded-lg px-4 py-3 text-white focus:border-primary focus:outline-none w-full" />
-                                <textarea placeholder="Mensagem" rows={4} className="bg-dark-bg border border-white/10 rounded-lg px-4 py-3 text-white focus:border-primary focus:outline-none w-full"></textarea>
-                                <button type="submit" className="btn-primary w-full flex justify-center items-center">
-                                    <Send className="w-4 h-4 mr-2" /> Enviar Mensagem
+                                <input 
+                                    type="text" 
+                                    placeholder="Assunto" 
+                                    value={assunto}
+                                    onChange={(e) => setAssunto(e.target.value)}
+                                    className="bg-dark-bg border border-white/10 rounded-lg px-4 py-3 text-white focus:border-primary focus:outline-none w-full" 
+                                />
+                                <textarea 
+                                    placeholder="Mensagem *" 
+                                    rows={4} 
+                                    value={mensagem}
+                                    onChange={(e) => setMensagem(e.target.value)}
+                                    className="bg-dark-bg border border-white/10 rounded-lg px-4 py-3 text-white focus:border-primary focus:outline-none w-full" 
+                                    required 
+                                ></textarea>
+                                <button 
+                                    type="submit" 
+                                    disabled={isSubmitting}
+                                    className="btn-primary w-full flex justify-center items-center disabled:opacity-50"
+                                >
+                                    {isSubmitting ? (
+                                        <Loader className="w-5 h-5 animate-spin mr-2" />
+                                    ) : (
+                                        <Send className="w-4 h-4 mr-2" />
+                                    )}
+                                    {isSubmitting ? 'A enviar...' : 'Enviar Mensagem'}
                                 </button>
                             </form>
                         </div>

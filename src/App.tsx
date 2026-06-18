@@ -28,6 +28,7 @@ import CreateUser from './pages/admin/CreateUser';
 import AdminProducts from './pages/admin/Products';
 import AdminGallery from './pages/admin/Gallery';
 import AdminServices from './pages/admin/Services';
+import AdminMessages from './pages/admin/Messages';
 import BarberDashboard from './pages/barber/Dashboard';
 import MyOrders from './pages/MyOrders';
 import VerifyOrder from './pages/admin/VerifyOrder';
@@ -95,6 +96,7 @@ function App() {
                 <Route path="produtos" element={<AdminProducts />} />
                 <Route path="galeria" element={<AdminGallery />} />
                 <Route path="servicos" element={<AdminServices />} />
+                <Route path="mensagens" element={<AdminMessages />} />
               </Route>
 
               {/* Barber Routes */}
