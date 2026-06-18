@@ -48,7 +48,7 @@ const BarberLayout: React.FC = () => {
         { name: 'Marcações', path: '/barbeiro/marcações', icon: Calendar },
     ];
 
-    const isActive = (path: string) => location.pathname === path;
+    const isActive = (path: string) => decodeURIComponent(location.pathname) === path;
 
     return (
         <div className="min-h-screen bg-zinc-950 pt-24 pb-12 relative flex">

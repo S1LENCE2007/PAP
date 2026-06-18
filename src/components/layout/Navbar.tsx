@@ -32,7 +32,7 @@ const Navbar: React.FC = () => {
         // Admin link moved to separate logic
     ];
 
-    const isActive = (path: string) => location.pathname === path;
+    const isActive = (path: string) => decodeURIComponent(location.pathname) === path;
 
     const handleSignOut = async () => {
         await signOut();
