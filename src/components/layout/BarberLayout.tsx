@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, Loader, ChevronRight, Menu, X, Scissors } from 'lucide-react';
+import { LayoutDashboard, Loader, ChevronRight, Menu, X, Scissors, Calendar } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../utils/supabase';
 import { clsx } from 'clsx';
@@ -45,6 +45,7 @@ const BarberLayout: React.FC = () => {
 
     const navItems = [
         { name: 'Dashboard', path: '/barbeiro', icon: LayoutDashboard },
+        { name: 'Marcações', path: '/barbeiro/marcações', icon: Calendar },
     ];
 
     const isActive = (path: string) => location.pathname === path;

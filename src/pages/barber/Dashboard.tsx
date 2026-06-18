@@ -1,33 +1,20 @@
-import toast from 'react-hot-toast';
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../utils/supabase';
-import { Calendar as CalendarIcon, CheckCircle, AlertCircle, X, Repeat, Loader, Package } from 'lucide-react';
-import Calendar, { type CalendarEvent } from '../../components/Calendar';
+import { Calendar as CalendarIcon, CheckCircle, AlertCircle, Loader, Package, Users, Clock, ArrowRight } from 'lucide-react';
 import { motion } from 'framer-motion';
-import ConfirmModal from '../../components/modals/ConfirmModal';
-import RescheduleModal from '../../components/modals/RescheduleModal';
+import { Link } from 'react-router-dom';
 
 const BarberDashboard: React.FC = () => {
     const { user, isAdmin } = useAuth();
-    const [appointments, setAppointments] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [stats, setStats] = useState({
         todayCount: 0,
         pendingCount: 0,
         completedCount: 0,
-        totalRevenue: 0,
         totalOrders: 0
     });
-
-
-    // Calendar states
-    const [calendarView, setCalendarView] = useState<'month' | 'week' | 'day'>('week');
-    const [currentDate, setCurrentDate] = useState(new Date());
-
-    // Reschedule State
-    const [reschedulingApt, setReschedulingApt] = useState<any>(null);
-    const [confirmModal, setConfirmModal] = useState<{ isOpen: boolean; id: string | null; newStatus: string | null; message: string }>({ isOpen: false, id: null, newStatus: null, message: '' });
+    const [recentActivity, setRecentActivity] = useState<any[]>([]);
 
     useEffect(() => {
         if (!user) return;
@@ -37,17 +24,10 @@ const BarberDashboard: React.FC = () => {
     const fetchData = async () => {
         if (!user) return;
         try {
-            let query = supabase
-                .from('Marcacoes')
-                .select(`
-                    *,
-                    servico:servicos(nome, duracao, preco),
-                    cliente:perfis(nome, telemovel, email),
-                    barbeiros (nome)
-                `);
+            let barberId = user.id;
 
             if (!isAdmin) {
-                // 1. Get Barber ID for the non-admin barber
+                // Get Barber ID linked to user
                 const { data: barberData, error: barberError } = await supabase
                     .from('barbeiros')
                     .select('id')
@@ -59,67 +39,100 @@ const BarberDashboard: React.FC = () => {
                     setLoading(false);
                     return;
                 }
-                query = query.eq('barbeiro_id', barberData.id);
+                barberId = barberData.id;
             }
 
-            // 2. Fetch Appointments
-            const { data, error } = await query.order('data_hora', { ascending: true }); // Closest first
+            // 1. Fetch Appointments stats (for stats calculation)
+            let appointmentsQuery = supabase
+                .from('Marcacoes')
+                .select(`
+                    id,
+                    data_hora,
+                    status,
+                    servicos (duracao)
+                `);
 
-            if (error) throw error;
+            if (!isAdmin) {
+                appointmentsQuery = appointmentsQuery.eq('barbeiro_id', barberId);
+            }
+
+            const { data: aptsData, error: aptsError } = await appointmentsQuery;
+            if (aptsError) throw aptsError;
+
+            // 2. Fetch Orders Count
+            const { count: ordersCount } = await supabase
+                .from('encomendas')
+                .select('*', { count: 'exact', head: true });
+
+            // Calculate Stats
             const now = new Date();
-            const apts = (data || []).map(item => {
-                let currentStatus = item.status === 'pendente' ? 'marcado' : item.status;
-                const aptDate = new Date(item.data_hora);
-                const endDate = new Date(aptDate.getTime() + (item.servico?.duracao || 30) * 60000);
-
-                if ((currentStatus === 'marcado' || currentStatus === 'confirmado') && now > endDate) {
-                    currentStatus = 'concluido';
-                    supabase.from('Marcacoes').update({ status: 'concluido' }).eq('id', item.id).then();
-                } else if (item.status === 'pendente') {
-                    // Migrate legacy 'pendente' to 'marcado'
-                    supabase.from('Marcacoes').update({ status: 'marcado' }).eq('id', item.id).then();
-                }
-
-                return { ...item, status: currentStatus };
-            });
-
-            setAppointments(apts);
-
-            // 3. Calculate Stats
             const today = new Date();
             const todayString = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
 
-            const todayApts = apts.filter(a => {
+            const processedApts = (aptsData || []).map(item => {
+                const servicos = Array.isArray(item.servicos) ? item.servicos[0] : item.servicos;
+                let currentStatus = item.status === 'pendente' ? 'marcado' : item.status;
+                const aptDate = new Date(item.data_hora);
+                const duracao = servicos && typeof servicos.duracao === 'number' ? servicos.duracao : 30;
+                const endDate = new Date(aptDate.getTime() + (duracao * 60000));
+
+                if ((currentStatus === 'marcado' || currentStatus === 'confirmado') && now > endDate) {
+                    currentStatus = 'concluido';
+                }
+                return { ...item, status: currentStatus };
+            });
+
+            const todayApts = processedApts.filter(a => {
                 if (!a.data_hora) return false;
                 const aptDate = new Date(a.data_hora);
                 const aptString = `${aptDate.getFullYear()}-${String(aptDate.getMonth() + 1).padStart(2, '0')}-${String(aptDate.getDate()).padStart(2, '0')}`;
                 return aptString === todayString;
             });
 
-            const pending = apts.filter(a => a.status === 'marcado' || a.status === 'pendente');
-            const confirmed = apts.filter(a => a.status === 'confirmado');
+            const pending = processedApts.filter(a => a.status === 'marcado' || a.status === 'pendente');
+            const confirmed = processedApts.filter(a => a.status === 'confirmado');
 
-            // 3. Fetch Orders Count
-            const { count: ordersCount } = await supabase
-                .from('encomendas')
-                .select('*', { count: 'exact', head: true });
- 
             setStats({
                 todayCount: todayApts.length,
                 pendingCount: pending.length,
                 completedCount: confirmed.length,
-                totalRevenue: 0,
                 totalOrders: ordersCount || 0
             });
 
+            // 3. Fetch Recent Activity (last 5 appointments)
+            let recentQuery = supabase
+                .from('Marcacoes')
+                .select(`
+                    id,
+                    data_hora,
+                    status,
+                    perfis (nome, telemovel, email),
+                    servicos (nome),
+                    barbeiros (nome)
+                `);
+
+            if (!isAdmin) {
+                recentQuery = recentQuery.eq('barbeiro_id', barberId);
+            }
+
+            const { data: recentData, error: recentError } = await recentQuery
+                .order('created_at', { ascending: false })
+                .limit(5);
+
+            if (recentError) throw recentError;
+
+            const mappedRecent = (recentData || []).map(item => ({
+                ...item,
+                status: item.status === 'pendente' ? 'marcado' : item.status
+            }));
+            setRecentActivity(mappedRecent);
+
         } catch (error) {
-            console.error('Error fetching data:', error);
+            console.error('Error fetching dashboard data:', error);
         } finally {
             setLoading(false);
         }
     };
-
-
 
     if (loading) {
         return (
@@ -149,100 +162,6 @@ const BarberDashboard: React.FC = () => {
         { title: 'Encomendas', value: stats.totalOrders, icon: Package, color: 'text-purple-400', bg: 'from-purple-500/20 to-purple-600/5', border: 'border-purple-500/20' },
     ];
 
-    const calendarEvents: CalendarEvent[] = appointments.map(apt => ({
-        id: apt.id,
-        title: apt.cliente?.nome || 'Cliente',
-        subtitle: (() => {
-            const serviceName = apt.servico?.nome || 'Serviço';
-            const bData = Array.isArray(apt.barbeiros) ? apt.barbeiros[0] : apt.barbeiros;
-            return `${serviceName} • ${bData?.nome || 'Sem Barbeiro'}`;
-        })(),
-        start: new Date(apt.data_hora),
-        end: new Date(new Date(apt.data_hora).getTime() + (apt.servico?.duracao || 30) * 60000),
-        status: apt.status,
-        clientDetails: {
-            name: apt.cliente?.nome || 'Cliente',
-            phone: apt.cliente?.telemovel,
-            email: apt.cliente?.email
-        },
-        rawAppointment: apt
-    }));
-
-    const handleStatusUpdateClick = (id: string, newStatus: string) => {
-        setConfirmModal({
-            isOpen: true,
-            id,
-            newStatus,
-            message: `Deseja alterar o status para "${newStatus}"?`
-        });
-    };
-
-    const handleConfirmStatusUpdate = async () => {
-        if (!confirmModal.id || !confirmModal.newStatus) return;
-
-        try {
-            const { error } = await supabase
-                .from('Marcacoes')
-                .update({ status: confirmModal.newStatus })
-                .eq('id', confirmModal.id);
-
-            if (error) throw error;
-            fetchData(); // Refresh data
-            toast.success('Status atualizado com sucesso!');
-        } catch (error) {
-            console.error('Error updating status:', error);
-            toast.error('Erro ao atualizar status.');
-        } finally {
-            setConfirmModal({ isOpen: false, id: null, newStatus: null, message: '' });
-        }
-    };
-
-    const renderBarberActions = (event: CalendarEvent) => {
-        const apt = event.rawAppointment;
-        if (!apt) return null;
-
-        return (
-            <div className="flex flex-wrap gap-2">
-                {(apt.status === 'marcado' || apt.status === 'confirmado' || apt.status === 'pendente') && (
-                    <button
-                        onClick={() => {
-                            setReschedulingApt(apt);
-                        }}
-                        className="flex-1 min-w-[120px] py-2 bg-zinc-700/50 text-gray-300 rounded-lg hover:bg-zinc-600 transition-all font-bold flex items-center justify-center gap-2 border border-white/5"
-                    >
-                        <Repeat className="w-4 h-4" /> Remarcar
-                    </button>
-                )}
-                {(apt.status === 'marcado' || apt.status === 'pendente') && (
-                    <button
-                        onClick={() => handleStatusUpdateClick(apt.id, 'confirmado')}
-                        className="flex-1 min-w-[120px] py-2 bg-green-500/10 text-green-500 rounded-lg hover:bg-green-500/20 transition-all font-bold flex items-center justify-center gap-2 border border-green-500/20"
-                    >
-                        <CheckCircle className="w-4 h-4" /> Confirmar
-                    </button>
-                )}
-                {apt.status === 'confirmado' && (
-                    <button
-                        onClick={() => handleStatusUpdateClick(apt.id, 'concluido')}
-                        className="flex-1 min-w-[120px] py-2 bg-emerald-500/10 text-emerald-500 rounded-lg hover:bg-emerald-500/20 transition-all font-bold flex items-center justify-center gap-2 border border-emerald-500/20"
-                    >
-                        <CheckCircle className="w-4 h-4" /> Concluir
-                    </button>
-                )}
-                {(apt.status === 'marcado' || apt.status === 'pendente' || apt.status === 'confirmado') && (
-                    <button
-                        onClick={() => handleStatusUpdateClick(apt.id, 'cancelado')}
-                        className="flex-1 min-w-[120px] py-2 bg-red-500/10 text-red-500 rounded-lg hover:bg-red-500/20 transition-all font-bold flex items-center justify-center gap-2 border border-red-500/20"
-                    >
-                        <X className="w-4 h-4" /> Cancelar
-                    </button>
-                )}
-            </div>
-        );
-    };
-
-
-
     return (
         <motion.div
             variants={container}
@@ -252,11 +171,8 @@ const BarberDashboard: React.FC = () => {
         >
             <header className="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
                 <div>
-                    <h1 className="text-3xl font-heading font-bold text-white">Painel do Barbeiro</h1>
+                    <h1 className="text-3xl font-heading font-bold text-white">Dashboard do Barbeiro</h1>
                     <p className="text-gray-400">Bem-vindo, {user?.user_metadata?.nome || 'Profissional'}</p>
-                </div>
-                <div className="flex gap-4">
-
                 </div>
             </header>
 
@@ -284,46 +200,74 @@ const BarberDashboard: React.FC = () => {
             </div>
 
             <div className="w-full">
-                {/* Main Action Area: Appointments List */}
+                {/* Recent Activity */}
                 <motion.div variants={item} className="space-y-8">
                     <div className="bg-zinc-900/50 border border-white/5 rounded-2xl p-6 backdrop-blur-sm">
-                        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
-                            <h2 className="text-xl font-bold text-white">Calendário de Marcações</h2>
+                        <div className="flex justify-between items-center mb-6">
+                            <h2 className="text-xl font-bold text-white">Últimas Marcações</h2>
+                            <Link to="/barbeiro/marcações" className="text-primary hover:text-amber-300 text-sm flex items-center gap-1 transition-colors">
+                                Ver todas <ArrowRight className="w-4 h-4" />
+                            </Link>
                         </div>
 
-                        <Calendar
-                            events={calendarEvents}
-                            view={calendarView}
-                            onViewChange={setCalendarView}
-                            currentDate={currentDate}
-                            onDateChange={setCurrentDate}
-                            renderActions={renderBarberActions}
-                        />
+                        {recentActivity.length > 0 ? (
+                            <div className="space-y-3">
+                                {recentActivity.map((apt) => {
+                                    const profile = Array.isArray(apt.perfis) ? apt.perfis[0] : apt.perfis;
+                                    const service = Array.isArray(apt.servicos) ? apt.servicos[0] : apt.servicos;
+                                    const barber = Array.isArray(apt.barbeiros) ? apt.barbeiros[0] : apt.barbeiros;
+
+                                    return (
+                                        <div key={apt.id} className="flex flex-col sm:flex-row items-center justify-between p-4 rounded-xl bg-white/5 hover:bg-white/10 transition-colors border border-white/5 group gap-2 sm:gap-0">
+                                            <div className="flex items-center gap-4 w-full sm:w-auto">
+                                                <div className="w-10 h-10 rounded-full bg-zinc-800 flex items-center justify-center text-gray-400 group-hover:text-primary transition-colors">
+                                                    <Users className="w-5 h-5" />
+                                                </div>
+                                                <div>
+                                                    <p className="font-bold text-white">
+                                                        {profile?.nome || 'Cliente Desconhecido'}
+                                                    </p>
+                                                    <div className="flex flex-col sm:flex-row gap-1 sm:gap-3 text-xs text-gray-400 mt-0.5">
+                                                        <span>{profile?.telemovel}</span>
+                                                        <span className="hidden sm:inline">•</span>
+                                                        <span>{profile?.email}</span>
+                                                    </div>
+                                                    <p className="text-sm text-primary mt-1">
+                                                        {service?.nome} • <span className="text-gray-400 font-normal">Profissional: {barber?.nome || 'Sem Barbeiro'}</span>
+                                                    </p>
+                                                </div>
+                                            </div>
+                                            <div className="text-right w-full sm:w-auto mt-2 sm:mt-0 flex flex-row sm:flex-col justify-between sm:justify-center items-center sm:items-end">
+                                                <div className="flex items-center gap-2 text-gray-400 text-sm mb-0 sm:mb-1 justify-end">
+                                                    <Clock className="w-3 h-3" />
+                                                    {new Date(apt.data_hora).toLocaleDateString('pt-PT', {
+                                                        day: 'numeric',
+                                                        month: 'short',
+                                                        hour: '2-digit',
+                                                        minute: '2-digit'
+                                                    })}
+                                                </div>
+                                                <span className={`px-2 py-0.5 rounded text-xs font-bold uppercase tracking-wider
+                                                    ${apt.status === 'confirmado' ? 'bg-blue-500/20 text-blue-400' :
+                                                        (apt.status === 'marcado' || apt.status === 'pendente') ? 'bg-yellow-500/20 text-yellow-400' :
+                                                            apt.status === 'concluido' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-red-500/20 text-red-400'
+                                                    }`}>
+                                                    {apt.status}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        ) : (
+                            <div className="text-center py-10 text-gray-500">
+                                <CalendarIcon className="w-12 h-12 mx-auto mb-3 opacity-20" />
+                                <p>Sem marcações recentes.</p>
+                            </div>
+                        )}
                     </div>
                 </motion.div>
             </div>
-
-            {/* Reschedule Modal */}
-            {reschedulingApt && (
-                <RescheduleModal
-                    isOpen={!!reschedulingApt}
-                    onClose={() => setReschedulingApt(null)}
-                    appointmentId={reschedulingApt.id}
-                    currentBarberId={reschedulingApt.barbeiro_id}
-                    currentServiceId={reschedulingApt.servico_id}
-                    currentDateHora={reschedulingApt.data_hora}
-                    onSuccess={fetchData}
-                />
-            )}
-            <ConfirmModal
-                isOpen={confirmModal.isOpen}
-                onClose={() => setConfirmModal({ isOpen: false, id: null, newStatus: null, message: '' })}
-                onConfirm={handleConfirmStatusUpdate}
-                title="Atualizar Status"
-                message={confirmModal.message}
-                confirmText="Confirmar"
-                isDestructive={confirmModal.newStatus === 'cancelado'}
-            />
         </motion.div>
     );
 };

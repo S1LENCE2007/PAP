@@ -30,6 +30,7 @@ import AdminGallery from './pages/admin/Gallery';
 import AdminServices from './pages/admin/Services';
 import AdminMessages from './pages/admin/Messages';
 import BarberDashboard from './pages/barber/Dashboard';
+import BarberAppointments from './pages/barber/Appointments';
 import MyOrders from './pages/MyOrders';
 import VerifyOrder from './pages/admin/VerifyOrder';
 
@@ -102,6 +103,7 @@ function App() {
               {/* Barber Routes */}
               <Route path="/barbeiro" element={<BarberLayout />}>
                 <Route index element={<BarberDashboard />} />
+                <Route path="marcações" element={<BarberAppointments />} />
               </Route>
             </Route>
           </Routes>
