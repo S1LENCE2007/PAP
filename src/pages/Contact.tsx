@@ -15,7 +15,7 @@ const Contact: React.FC = () => {
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        
+
         if (!nome.trim() || !email.trim() || !mensagem.trim()) {
             toast.error('Por favor, preencha os campos obrigatórios (Nome, Email e Mensagem).');
             return;
@@ -117,7 +117,7 @@ const Contact: React.FC = () => {
                                     <a href="https://www.instagram.com/barberyvandourado/" target="_blank" rel="noopener noreferrer" className="bg-dark-bg p-3 rounded-full text-gray-400 hover:text-primary hover:bg-black transition-all border border-white/5 hover:border-primary/30">
                                         <Instagram className="w-6 h-6" />
                                     </a>
-                                    <a href="#" className="bg-dark-bg p-3 rounded-full text-gray-400 hover:text-primary hover:bg-black transition-all border border-white/5 hover:border-primary/30">
+                                    <a href="https://www.facebook.com/p/Barbearia-Dourado-61565019275951/" target="_blank" rel="noopener noreferrer" className="bg-dark-bg p-3 rounded-full text-gray-400 hover:text-primary hover:bg-black transition-all border border-white/5 hover:border-primary/30">
                                         <Facebook className="w-6 h-6" />
                                     </a>
                                 </div>
@@ -135,40 +135,40 @@ const Contact: React.FC = () => {
                             <h3 className="text-2xl font-bold text-white mb-6 border-l-4 border-primary pl-4">Envie uma Mensagem</h3>
                             <form onSubmit={handleSubmit} className="space-y-4">
                                 <div className="grid grid-cols-2 gap-4">
-                                    <input 
-                                        type="text" 
-                                        placeholder="Nome *" 
+                                    <input
+                                        type="text"
+                                        placeholder="Nome *"
                                         value={nome}
                                         onChange={(e) => setNome(e.target.value)}
-                                        className="bg-dark-bg border border-white/10 rounded-lg px-4 py-3 text-white focus:border-primary focus:outline-none w-full" 
-                                        required 
+                                        className="bg-dark-bg border border-white/10 rounded-lg px-4 py-3 text-white focus:border-primary focus:outline-none w-full"
+                                        required
                                     />
-                                    <input 
-                                        type="email" 
-                                        placeholder="Email *" 
+                                    <input
+                                        type="email"
+                                        placeholder="Email *"
                                         value={email}
                                         onChange={(e) => setEmail(e.target.value)}
-                                        className="bg-dark-bg border border-white/10 rounded-lg px-4 py-3 text-white focus:border-primary focus:outline-none w-full" 
-                                        required 
+                                        className="bg-dark-bg border border-white/10 rounded-lg px-4 py-3 text-white focus:border-primary focus:outline-none w-full"
+                                        required
                                     />
                                 </div>
-                                <input 
-                                    type="text" 
-                                    placeholder="Assunto" 
+                                <input
+                                    type="text"
+                                    placeholder="Assunto"
                                     value={assunto}
                                     onChange={(e) => setAssunto(e.target.value)}
-                                    className="bg-dark-bg border border-white/10 rounded-lg px-4 py-3 text-white focus:border-primary focus:outline-none w-full" 
+                                    className="bg-dark-bg border border-white/10 rounded-lg px-4 py-3 text-white focus:border-primary focus:outline-none w-full"
                                 />
-                                <textarea 
-                                    placeholder="Mensagem *" 
-                                    rows={4} 
+                                <textarea
+                                    placeholder="Mensagem *"
+                                    rows={4}
                                     value={mensagem}
                                     onChange={(e) => setMensagem(e.target.value)}
-                                    className="bg-dark-bg border border-white/10 rounded-lg px-4 py-3 text-white focus:border-primary focus:outline-none w-full" 
-                                    required 
+                                    className="bg-dark-bg border border-white/10 rounded-lg px-4 py-3 text-white focus:border-primary focus:outline-none w-full"
+                                    required
                                 ></textarea>
-                                <button 
-                                    type="submit" 
+                                <button
+                                    type="submit"
                                     disabled={isSubmitting}
                                     className="btn-primary w-full flex justify-center items-center disabled:opacity-50"
                                 >
