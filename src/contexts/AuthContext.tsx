@@ -111,6 +111,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         } catch (error) {
             console.error('Erro ao terminar sessão no Supabase:', error);
         } finally {
+            // Limpa de forma forçada os tokens do Supabase do localStorage
+            Object.keys(localStorage).forEach(key => {
+                if (key.startsWith('sb-') || key.includes('supabase')) {
+                    localStorage.removeItem(key);
+                }
+            });
             setRole(null);
             setIsProfessionalAdmin(false);
             setUser(null);
