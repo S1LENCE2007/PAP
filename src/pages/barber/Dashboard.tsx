@@ -2,7 +2,7 @@ import toast from 'react-hot-toast';
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../utils/supabase';
-import { Calendar as CalendarIcon, CheckCircle, AlertCircle, X, Repeat, Loader } from 'lucide-react';
+import { Calendar as CalendarIcon, CheckCircle, AlertCircle, X, Repeat, Loader, Package } from 'lucide-react';
 import Calendar, { type CalendarEvent } from '../../components/Calendar';
 import { motion } from 'framer-motion';
 import ConfirmModal from '../../components/modals/ConfirmModal';
@@ -16,7 +16,8 @@ const BarberDashboard: React.FC = () => {
         todayCount: 0,
         pendingCount: 0,
         completedCount: 0,
-        totalRevenue: 0
+        totalRevenue: 0,
+        totalOrders: 0
     });
 
 
@@ -98,11 +99,17 @@ const BarberDashboard: React.FC = () => {
             const pending = apts.filter(a => a.status === 'marcado' || a.status === 'pendente');
             const confirmed = apts.filter(a => a.status === 'confirmado');
 
+            // 3. Fetch Orders Count
+            const { count: ordersCount } = await supabase
+                .from('encomendas')
+                .select('*', { count: 'exact', head: true });
+ 
             setStats({
                 todayCount: todayApts.length,
                 pendingCount: pending.length,
                 completedCount: confirmed.length,
-                totalRevenue: 0
+                totalRevenue: 0,
+                totalOrders: ordersCount || 0
             });
 
         } catch (error) {
@@ -139,6 +146,7 @@ const BarberDashboard: React.FC = () => {
         { title: 'Hoje', value: stats.todayCount, icon: CalendarIcon, color: 'text-blue-400', bg: 'from-blue-500/20 to-blue-600/5', border: 'border-blue-500/20' },
         { title: 'Marcados', value: stats.pendingCount, icon: AlertCircle, color: 'text-yellow-400', bg: 'from-yellow-500/20 to-yellow-600/5', border: 'border-yellow-500/20' },
         { title: 'Confirmados', value: stats.completedCount, icon: CheckCircle, color: 'text-emerald-400', bg: 'from-emerald-500/20 to-emerald-600/5', border: 'border-emerald-500/20' },
+        { title: 'Encomendas', value: stats.totalOrders, icon: Package, color: 'text-purple-400', bg: 'from-purple-500/20 to-purple-600/5', border: 'border-purple-500/20' },
     ];
 
     const calendarEvents: CalendarEvent[] = appointments.map(apt => ({
@@ -253,7 +261,7 @@ const BarberDashboard: React.FC = () => {
             </header>
 
             {/* Stats Grid */}
-            <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
                 {statCards.map((stat, index) => (
                     <motion.div
                         key={index}
