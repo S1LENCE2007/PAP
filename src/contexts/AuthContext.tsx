@@ -106,9 +106,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }, []);
 
     const signOut = async () => {
-        await supabase.auth.signOut();
-        setRole(null);
-        setIsProfessionalAdmin(false);
+        try {
+            await supabase.auth.signOut();
+        } catch (error) {
+            console.error('Erro ao terminar sessão no Supabase:', error);
+        } finally {
+            setRole(null);
+            setIsProfessionalAdmin(false);
+            setUser(null);
+            setSession(null);
+        }
     };
 
     const isAdmin = role === 'admin';

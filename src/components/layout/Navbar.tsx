@@ -35,10 +35,15 @@ const Navbar: React.FC = () => {
     const isActive = (path: string) => decodeURIComponent(location.pathname) === path;
 
     const handleSignOut = async () => {
-        await signOut();
-        navigate('/');
-        setIsOpen(false);
-        setUserMenuOpen(false);
+        try {
+            await signOut();
+        } catch (error) {
+            console.error('Erro no handleSignOut da Navbar:', error);
+        } finally {
+            navigate('/');
+            setIsOpen(false);
+            setUserMenuOpen(false);
+        }
     };
 
     return (
